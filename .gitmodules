@@ -1,0 +1,3 @@
+[submodule "embers/external/fmt"]
+	path = embers/external/fmt
+	url = https://github.com/fmtlib/fmt.git
