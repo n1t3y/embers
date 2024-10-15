@@ -4,15 +4,13 @@
 #include <embers/test.hpp>
 #include <iostream>
 
-int embers::test::main() {
-  using embers::logger::Level;
-  using embers::logger::log;
+#include "engine_config.hpp"
 
-  EMBERS_DEBUG("Debug, {}", 42);
-  EMBERS_INFO("Info, {}", 42);
-  EMBERS_WARN("Warn, {}", 42);
-  EMBERS_ERROR("Error, {}", 42);
-  EMBERS_FATAL("Fatal, {}", 42);
+int embers::test::main() {
+  EMBERS_INFO(
+      "Main called: {} ver. {} built @ " __DATE__ " " __TIME__, embers::config::engine_config.name,
+      embers::config::engine_config.version
+  );
 
   return 0;
 }

@@ -16,6 +16,7 @@ add_library(
 	STATIC
 	src/test.cpp
 	src/logger.cpp
+	src/engine_config.cpp
 )
 
 target_include_directories(
