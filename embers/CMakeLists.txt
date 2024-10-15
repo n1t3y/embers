@@ -10,6 +10,13 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(external/fmt)
 
+
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(external/glfw)
+
 add_library(
 	embers
 	# SHARED
@@ -22,6 +29,7 @@ add_library(
 target_include_directories(
 	embers
 	PRIVATE
+	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>
 
 	PUBLIC
 	$<INSTALL_INTERFACE:include>
@@ -44,4 +52,5 @@ target_link_libraries(
 	embers
 	PRIVATE
 	fmt::fmt
+	glfw
 )

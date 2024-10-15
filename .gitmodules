@@ -1,3 +1,6 @@
 [submodule "embers/external/fmt"]
 	path = embers/external/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "embers/external/glfw"]
+	path = embers/external/glfw
+	url = https://github.com/glfw/glfw.git
