@@ -6,6 +6,12 @@ project(embers VERSION 0.0.1 LANGUAGES C CXX)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
+
+
+
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+
 set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(external/fmt)
@@ -54,3 +60,9 @@ target_link_libraries(
 	fmt::fmt
 	glfw
 )
+
+if(MSVC) 
+	add_compile_options(/GR- /EHsc)
+else()
+	add_compile_options(-fno-rtti -fno-exceptions)
+endif(MSVC) 
