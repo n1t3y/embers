@@ -1,12 +1,10 @@
 #include <GLFW/glfw3.h>
 #include <fmt/format.h>
 
-#include <embers/delete_me.hpp>
 #include <embers/logger.hpp>
 #include <embers/result.hpp>
 #include <embers/test.hpp>
 #include <iostream>
-#include <variant>
 
 #include "engine_config.hpp"
 
@@ -18,7 +16,7 @@ enum class PlatformError {
 
 class Platform {
   static u32  glfw_inits_;
-  GLFWwindow *window_;  // also is the marker of validity, nullptr signals invalid state of the struct
+  GLFWwindow *window_;
 
   Platform(GLFWwindow *window) { window_ = window; };
 
@@ -31,13 +29,17 @@ class Platform {
     platform.window_ = nullptr;
   }
 
-  static embers::Result<Platform, PlatformError> create(const embers::config::Config &config);
+  static embers::Result<Platform, PlatformError> create(
+      const embers::config::Config &config
+  );
   ~Platform();
 };
 
 u32 Platform::glfw_inits_ = 0;
 
-embers::Result<Platform, PlatformError> Platform::create(const embers::config::Config &config) {
+embers::Result<Platform, PlatformError> Platform::create(
+    const embers::config::Config &config
+) {
   PlatformError error = PlatformError::kUnknown;
   GLFWwindow   *window;
 
@@ -53,7 +55,13 @@ embers::Result<Platform, PlatformError> Platform::create(const embers::config::C
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-  window = glfwCreateWindow(config.resolution.width, config.resolution.height, config.application_name, NULL, NULL);
+  window = glfwCreateWindow(
+      config.resolution.width,
+      config.resolution.height,
+      config.application_name,
+      NULL,
+      NULL
+  );
 
   if (window == NULL) {
     error = PlatformError::kUnableToCreateWindow;
@@ -76,7 +84,8 @@ embersPlatformInit_fail_init:
 
   glfw_error = glfwGetError(NULL);
   EMBERS_ERROR("Unable to init platform; glfwGetError: {}", glfw_error);
-  return embers::Result<Platform, PlatformError>::create_err(error);  // todo(n1t3): Error handling
+  return embers::Result<Platform, PlatformError>::create_err(error
+  );  // todo(n1t3): Error handling
 }
 
 Platform::~Platform() {
@@ -103,13 +112,16 @@ embers::Result<int, ErrorCode> get_a_thing() {
   if (a > 10) {
     return embers::Result<int, ErrorCode>::create_ok(a);
   } else {
-    return embers::Result<int, ErrorCode>::create_err(ErrorCode::kPermissionDenied);
+    return embers::Result<int, ErrorCode>::create_err(
+        ErrorCode::kPermissionDenied
+    );
   }
 }
 
 int embers::test::main() {
   // EMBERS_INFO(
-  //     "Main called: {} ver. {} built @ " __DATE__ " " __TIME__, embers::config::engine_config.name,
+  //     "Main called: {} ver. {} built @ " __DATE__ " " __TIME__,
+  //     embers::config::engine_config.name,
   //     embers::config::engine_config.version
   // );
 
@@ -124,22 +136,37 @@ int embers::test::main() {
   // Result<u8, const char *>  a = Result<u8, const char *>::create_ok(10);
   // Result<u64, const char *> b = a.map([](int x) { return (u64)(x * 2); });
   // EMBERS_INFO("{}", b.has_value_and([](int x) { return x > 1; }));
-  // EMBERS_INFO("{}", typeid(b).name());  // Result<unsigned __int64,char const * __ptr64>
+  // EMBERS_INFO("{}", typeid(b).name());  // Result<unsigned __int64,char const
+  // * __ptr64>
 
-  auto a = get_a_thing().map([](int x) { return x * 32; }).map_err([](ErrorCode err) {
+  // AllowShortFunctionsOnASingleLine: None
+  // AllowShortIfStatementsOnASingleLine: None
+
+  auto a = get_a_thing().map([](int x) { return x * 32; }
+  ).map_err([](ErrorCode err) {
     switch (err) {
       case ErrorCode::kPermissionDenied:
         return "Permission Denied";
       case ErrorCode::kUnknown:
+      default:
         return "Unknown";
     }
   });
 
-  if (a.has_value()) {
+  if (a.has_value_and([](int a) { return true; })) {
     EMBERS_INFO("Value: {}", a.value());
-  } else {
-    EMBERS_INFO("Error: {}", a.error());
   }
 
   return 0;
+}
+
+int brrr(
+    int          argc,
+    const char **argv,
+    const char **env,
+    const char **env1,
+    const char **env2
+) {
+  1;
+  return 1;
 }
