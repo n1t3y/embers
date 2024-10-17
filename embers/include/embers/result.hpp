@@ -42,8 +42,8 @@ class Result {
     ~Container() {}
   };
 
-  Status    status_ = Status::kNotInit;
   Container container_;
+  Status    status_ = Status::kNotInit;
 
   Result() = delete;
 
