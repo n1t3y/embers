@@ -723,3 +723,22 @@ class Result {
   }
 };
 }  // namespace embers
+
+template <typename T, typename E>
+// template <>
+class fmt::formatter<embers::Result<T, E>> {
+  using Result = embers::Result<T, E>;
+
+ public:
+  constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
+  template <typename Context>
+  constexpr auto format(Result const &result, Context &ctx) const {
+    if (result.is_ok()) {
+      return format_to(ctx.out(), "Ok({:?})", result.unwrap());
+    }
+    if (result.is_err()) {
+      return format_to(ctx.out(), "Err({:?})", result.unwrap_err());
+    }
+    return format_to(ctx.out(), "NotInit");
+  }
+};
