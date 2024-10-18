@@ -637,16 +637,41 @@ class Result {
   }
 
   // --- Then & Else ---
-  template <typename U, class F>
-  constexpr Result<U, E> then(F &&f) const & {
+  template <class F>
+  constexpr Result<typename std::invoke_result<F, T>::type, E> then(  //
+      F &&f
+  ) const & {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "then must be called with a (template) F argument that is "
+        "invokable with T"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "then must be called with a (template) F argument that doesn't "
+        "return void"
+    );
     return  //
         is_ok()
             ? Result<U, E>(std::invoke(std::forward<F>(f), (container_.ok_)))
             : Result<U, E>(*this);
   }
 
-  template <typename G, class F>
-  constexpr Result<T, G> alternatively(F &&f) const & {
+  template <class F>
+  constexpr Result<T, typename std::invoke_result<F, E>::type> alternatively(
+      F &&f
+  ) const & {
+    static_assert(
+        std::is_invocable<F, E>::value,
+        "alternatively must be called with a (template) F argument that is "
+        "invokable with E"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, E>::type, void>::value,
+        "alternatively must be called with a (template) F argument that "
+        "doesn't "
+        "return void"
+    );
     return  //
         is_err()
             ? Result<T, G>(std::invoke(std::forward<F>(f), (container_.err_)))
@@ -656,6 +681,16 @@ class Result {
   // ___ move ___
   template <typename U, class F>
   constexpr Result<U, E> &&then(F &&f) && {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "then must be called with a (template) F argument that is "
+        "invokable with T"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "then must be called with a (template) F argument that doesn't "
+        "return void"
+    );
     auto result =
         is_ok()
             ? Result<U, E>(
@@ -667,6 +702,17 @@ class Result {
 
   template <typename G, class F>
   constexpr Result<T, G> &&alternatively(F &&f) && {
+    static_assert(
+        std::is_invocable<F, E>::value,
+        "alternatively must be called with a (template) F argument that is "
+        "invokable with E"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, E>::type, void>::value,
+        "alternatively must be called with a (template) F argument that "
+        "doesn't "
+        "return void"
+    );
     auto result =
         is_err()
             ? Result<T, G>(
