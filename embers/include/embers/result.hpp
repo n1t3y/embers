@@ -5,6 +5,19 @@
 
 namespace embers {
 
+template <typename T>
+constexpr bool is_lvalue(T &) {
+  return true;
+}
+
+template <typename T>
+constexpr bool is_lvalue(T &&) {
+  return false;
+}
+
+template <typename T>
+class Option;
+
 namespace internal {
 enum class ResultStatus : u8 {
   kNotInit = 0,
@@ -15,9 +28,14 @@ enum class ResultStatus : u8 {
 
 template <typename T, typename E>
 class Result {
+  // to convert result between instances
   template <typename T1, typename E1>
   friend class Result;
 
+  static_assert(!std::is_same<T, void>::value, "T must not be void");
+  static_assert(!std::is_same<E, void>::value, "E must not be void");
+
+  // === Helper structs ===
  public:
   struct Error {
     E value;
@@ -31,9 +49,6 @@ class Result {
  private:
   using Status = internal::ResultStatus;
 
-  static_assert(!std::is_same<T, void>::value, "T must not be void");
-  static_assert(!std::is_same<E, void>::value, "E must not be void");
-
   union Container {
     T  ok_;
     E  err_;
@@ -42,22 +57,16 @@ class Result {
     ~Container() {}
   };
 
+  // === Fields ===
+
   Container container_;
   Status    status_ = Status::kNotInit;
 
+  // === Constructors & Deconstructor ===
+ public:
   Result() = delete;
 
- public:
-  constexpr Result(T &&ok) {
-    new (&container_.ok_) T(std::move(ok));
-    status_ = Status::kOk;
-  }
-
-  constexpr Result(Error &&err) {
-    new (&container_.err_) E(std::move(err.value));
-    status_ = Status::kErr;
-  }
-
+  // ___ copy __
   constexpr Result(const T &ok) {
     new (&container_.ok_) T(ok);
     status_ = Status::kOk;
@@ -67,6 +76,12 @@ class Result {
     new (&container_.err_) E(err.value);
     status_ = Status::kErr;
   }
+
+  constexpr static Result create_ok(const T &ok) { return Result(ok); };
+
+  constexpr static Result create_err(const E &err) {
+    return Result(Error(err));
+  };
 
   constexpr Result(const Result &result) {
     switch (result.status_) {
@@ -82,6 +97,23 @@ class Result {
     }
     status_ = result.status_;
   }
+
+  // ___ move ___
+  constexpr Result(T &&ok) {
+    new (&container_.ok_) T(std::move(ok));
+    status_ = Status::kOk;
+  }
+
+  constexpr Result(Error &&err) {
+    new (&container_.err_) E(std::move(err.value));
+    status_ = Status::kErr;
+  }
+
+  constexpr static Result create_ok(T &&ok) { return Result(std::move(ok)); };
+
+  constexpr static Result create_err(E &&err) {
+    return Result(Error(std::move(err)));
+  };
 
   constexpr Result(Result &&result) {
     switch (result.status_) {
@@ -99,78 +131,7 @@ class Result {
     result.status_ = Status::kNotInit;
   }
 
- private:
-  // Convert from Result <T1, E> into Result<T, E> (only if it is an error)
-  template <typename T1>
-  constexpr Result(const Result<T1, E> &result) {
-    EMBERS_ASSERT(
-        result.status_ != Status::kOk,
-        "Attempting to convert Result between templates (to a different value "
-        "types), but state isn't erroneous"
-    );
-    if (result.status_ == Status::kErr) {
-      new (&container_.err_) E(result.container_.err_);
-    }
-    status_ = result.status_;
-  }
-
-  template <typename T1>
-  constexpr Result(Result<T1, E> &&result) {
-    EMBERS_ASSERT(
-        result.status_ != Status::kOk,
-        "Attempting to convert Result between templates (to a different value "
-        "types), but state isn't erroneous"
-    );
-    if (result.status_ == Status::kErr) {
-      new (&container_.err_) E(std::move(result.container_.err_));
-    }
-
-    status_        = result.status_;
-    result.status_ = Status::kNotInit;
-  }
-
-  // Convert from Result <T, E1> into Result<T, E> (only if it is NOT an error)
-  template <typename E1>
-  constexpr Result(const Result<T, E1> &result) {
-    EMBERS_ASSERT(
-        result.status_ != Status::kErr,
-        "Attempting to convert Result between templates (to a different error "
-        "types), but state isn't valid"
-    );
-    if (result.status_ == Status::kOk) {
-      new (&container_.ok_) T(result.container_.ok_);
-    }
-    status_ = result.status_;
-  }
-
-  template <typename E1>
-  constexpr Result(Result<T, E1> &&result) {
-    EMBERS_ASSERT(
-        result.status_ != Status::kErr,
-        "Attempting to convert Result between templates (to a different error "
-        "types), but state isn't valid"
-    );
-    if (result.status_ == Status::kOk) {
-      new (&container_.ok_) T(std::move(result.container_.ok_));
-    }
-
-    status_        = result.status_;
-    result.status_ = Status::kNotInit;
-  }
-
- public:
-  constexpr static Result create_ok(const T &ok) { return Result(ok); };
-
-  constexpr static Result create_err(const E &err) {
-    return Result(Error(err));
-  };
-
-  constexpr static Result create_ok(T &&ok) { return Result(std::move(ok)); };
-
-  constexpr static Result create_err(E &&err) {
-    return Result(Error(std::move(err)));
-  };
-
+  // ___ deconstructor ___
   ~Result() {
     switch (status_) {
       case Status::kOk:
@@ -185,140 +146,534 @@ class Result {
     }
   };
 
+  // === Conversion constructors ===
+  // they are only used by intenal methods such as map to convert types
+  // and require checks before running
+ private:
+  // --- Result <T1, E> -> Result<T, E> (only if it is an error) ---
+  template <typename T1>
+  explicit constexpr Result(const Result<T1, E> &result) {
+    EMBERS_ASSERT(
+        result.status_ != Status::kOk,
+        "Attempting to convert Result between templates (to a different value "
+        "types), but state isn't erroneous"
+    );
+    if (result.status_ == Status::kErr) {
+      new (&container_.err_) E(result.container_.err_);
+    }
+    status_ = result.status_;
+  }
+
+  template <typename T1>
+  explicit constexpr Result(Result<T1, E> &&result) {
+    EMBERS_ASSERT(
+        result.status_ != Status::kOk,
+        "Attempting to convert Result between templates (to a different value "
+        "types), but state isn't erroneous"
+    );
+    if (result.status_ == Status::kErr) {
+      new (&container_.err_) E(std::move(result.container_.err_));
+    }
+
+    status_        = result.status_;
+    result.status_ = Status::kNotInit;
+  }
+
+  // --- Result <T, E1> -> Result<T, E> (only if it is NOT an error) ---
+  template <typename E1>
+  explicit constexpr Result(const Result<T, E1> &result) {
+    EMBERS_ASSERT(
+        result.status_ != Status::kErr,
+        "Attempting to convert Result between templates (to a different error "
+        "types), but state isn't valid"
+    );
+    if (result.status_ == Status::kOk) {
+      new (&container_.ok_) T(result.container_.ok_);
+    }
+    status_ = result.status_;
+  }
+
+  template <typename E1>
+  explicit constexpr Result(Result<T, E1> &&result) {
+    EMBERS_ASSERT(
+        result.status_ != Status::kErr,
+        "Attempting to convert Result between templates (to a different error "
+        "types), but state isn't valid"
+    );
+    if (result.status_ == Status::kOk) {
+      new (&container_.ok_) T(std::move(result.container_.ok_));
+    }
+
+    status_        = result.status_;
+    result.status_ = Status::kNotInit;
+  }
+
  public:
-  constexpr const T &value() const & {
-    EMBERS_ASSERT(status_ == Status::kOk, "Unwrapping value of invalid result");
-    return container_.ok_;
-  }
+  // === Other methods ===
+  // --- Result Checking ---
+  constexpr bool is_ok() const & { return status_ == Status::kOk; }
+  constexpr bool is_err() const & { return status_ == Status::kErr; }
 
-  constexpr T &&value() && {
-    EMBERS_ASSERT(status_ == Status::kOk, "Unwrapping value of invalid result");
-    return std::move(container_.ok_);
+  // --- Result Validation ---
+  // __ copy __
+  template <class F>
+  constexpr bool is_ok_and(F &&f) const & {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "is_ok_and must be called with a (template) F argument that is "
+        "invokable with T"
+    );
+    static_assert(
+        std::is_same<typename std::invoke_result<F, T>::type, bool>::value,
+        "is_ok_and must be called with a (template) F argument that returns "
+        "bool"
+    );
+    return is_ok() && std::invoke(std::forward<F>(f), container_.ok_);
   }
-
-  constexpr const E &error() const & {
-    EMBERS_ASSERT(status_ == Status::kErr, "Unwrapping error of valid result");
-    return container_.err_;
-  }
-
-  constexpr const E &&error() && {
-    EMBERS_ASSERT(status_ == Status::kErr, "Unwrapping error of valid result");
-    return std::move(container_.err_);
-  }
-
- public:
-  constexpr const T &value_or(const T &other) const & {
-    if (status_ != Status::kOk) {
-      return other;
-    }
-    return container_.ok_;
-  }
-
-  constexpr T &&value_or(T &&other) && {
-    if (status_ != Status::kOk) {
-      return std::move(other);
-    }
-    return std::move(container_.ok_);
-  }
-
-  constexpr const T &error_or(const E &other) const & {
-    if (status_ != Status::kErr) {
-      return other;
-    }
-    return container_.err_;
-  }
-
-  constexpr T &&error_or(E &&other) && {
-    if (status_ != Status::kErr) {
-      return std::move(other);
-    }
-    return std::move(container_.err_);
-  }
-
- public:
-  constexpr bool has_value() const { return status_ == Status::kOk; }
 
   template <class F>
-  constexpr bool has_value_and(F &&f) const & {
+  constexpr bool is_err_and(F &&f) const & {
     static_assert(
-        std::is_same<std::invoke_result<F, T>::type, bool>::value,
-        __FUNCTION__ " must be called with a (template) F argument that returns bool"
+        std::is_invocable<F, E>::value,
+        "is_err_and must be called with a (template) F argument that is "
+        "invokable with E"
     );
-    if (status_ != Status::kOk) {
-      return false;
-    }
-    return std::invoke(std::forward<F>(f), container_.ok_);
+    static_assert(
+        std::is_same<typename std::invoke_result<F, E>::type, bool>::value,
+        "is_err_and must be called with a (template) F argument that returns "
+        "bool and accepts E"
+    );
+    return is_err() && std::invoke(std::forward<F>(f), container_.err_);
+  }
+
+  // __ move __
+  template <class F>
+  constexpr bool is_ok_and(F &&f) && {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "is_ok_and must be called with a (template) F argument that is "
+        "invokable with T"
+    );
+    static_assert(
+        std::is_same<typename std::invoke_result<F, T>::type, bool>::value,
+        "is_ok_and must be called with a (template) F argument that returns "
+        "bool"
+    );
+    return is_ok() &&
+           std::invoke(std::forward<F>(f), std::move(container_.ok_));
   }
 
   template <class F>
-  constexpr bool has_value_and(F &&f) && {
+  constexpr bool is_err_and(F &&f) && {
     static_assert(
-        std::is_same<std::invoke_result<F, T>::type, bool>::value,
-        __FUNCTION__ " must be called with a (template) F argument that returns bool"
+        std::is_invocable<F, E>::value,
+        "is_err_and must be called with a (template) F argument that is "
+        "invokable with E"
     );
-    if (status_ != Status::kOk) {
-      return false;
-    }
-    return std::invoke(std::forward<F>(f), std::move(container_.ok_));
+    static_assert(
+        std::is_same<typename std::invoke_result<F, E>::type, bool>::value,
+        "is_err_and must be called with a (template) F argument that returns "
+        "bool and accepts E"
+    );
+    return is_err() &&
+           std::invoke(std::forward<F>(f), std::move(container_.err_));
   }
 
- public:
+  // --- Convertion into Option<T>/Option<E> ---
+  // ___ copy ___
+  constexpr Option<T> ok() const & {
+    return is_ok() ? Option(container_.ok_) : Option<T>();
+  }
+  constexpr Option<E> err() const & {
+    return is_err() ? Option(container_.err_) : Option<E>();
+  }
+  // ___ move ___
+  constexpr Option<T> &&ok() && {
+    auto option = is_ok() ? Option(std::move(container_.ok_)) : Option<T>();
+    return std::move(option);
+  }
+  constexpr Option<E> &&err() && {
+    auto option = is_err() ? Option(std::move(container_.err_)) : Option<E>();
+    return std::move(option);
+  }
+
+  // --- Maps ---
+  // ___ copy ___
   template <class F>
   constexpr Result<typename std::invoke_result<F, T>::type, E> map(F &&f
   ) const & {
-    // (n1t3): i'm not what contraints are valid for this case
-    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
-    if (status_ != Status::kOk) {
-      return *this;
-    }
-    return MappedResult(  //
-        std::invoke(std::forward<F>(f), (container_.ok_))
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "map must be called with a (template) F argument that is invokable "
+        "with T"
     );
-  }
-
-  template <class F>
-  constexpr Result<typename std::invoke_result<F, T>::type, E> map(F &&f) && {
-    // (n1t3): i'm not what contraints are valid for this case
-    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
-    if (status_ != Status::kOk) {
-      return *this;
-    }
-    return MappedResult(  //
-        std::invoke(std::forward<F>(f), std::move(container_.ok_))
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "map must be called with a (template) F argument that doesn't "
+        "return void"
     );
+    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
+    auto result =
+        is_ok()
+            ? MappedResult(std::invoke(std::forward<F>(f), (container_.ok_)))
+            : MappedResult(*this);
+    return result;
   }
 
   template <class F>
   constexpr Result<T, typename std::invoke_result<F, E>::type> map_err(F &&f
   ) const & {
-    // (n1t3): i'm not what contraints are valid for this case
-    using MappedResult = Result<T, typename std::invoke_result<F, E>::type>;
-    using MappedError  = MappedResult::Error;
-    if (status_ != Status::kErr) {
-      return *this;
-    }
-    return MappedResult(  //
-        MappedError(      //
-            std::invoke(std::forward<F>(f), (container_.err_))
-        )
+    static_assert(
+        std::is_invocable<F, E>::value,
+        "map_err must be called with a (template) F argument that is invokable "
+        "with E"
     );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, E>::type, void>::value,
+        "map_err must be called with a (template) F argument that "
+        "doesn't return void"
+    );
+    using MappedResult = Result<T, typename std::invoke_result<F, E>::type>;
+    using MappedError  = typename MappedResult::Error;
+
+    auto result =
+        is_err()             //
+            ? MappedResult(  //
+                  MappedError(std::invoke(std::forward<F>(f), (container_.err_))
+                  )
+              )
+            : MappedResult(*this);
+    return result;
+  }
+
+  // ___ move ___
+
+  template <class F>
+  constexpr Result<typename std::invoke_result<F, T>::type, E> &&map(F &&f) && {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "map must be called with a (template) F argument that is invokable "
+        "with T"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "map must be called with a (template) F argument that doesn't "
+        "return void"
+    );
+    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
+    auto result =
+        is_ok() ? MappedResult(
+                      std::invoke(std::forward<F>(f), std::move(container_.ok_))
+                  )
+                : MappedResult(std::move(*this));
+
+    return std::move(result);
   }
 
   template <class F>
   constexpr Result<T, typename std::invoke_result<F, E>::type> map_err(F &&f
   ) && {
-    // (n1t3): i'm not what contraints are valid for this case
-    using MappedResult = Result<T, typename std::invoke_result<F, E>::type>;
-    using MappedError  = MappedResult::Error;
-    if (status_ != Status::kErr) {
-      return *this;
-    }
-    return MappedResult(  //
-        MappedError(      //
-            std::invoke(std::forward<F>(f), std::move(container_.err_))
-        )
+    static_assert(
+        std::is_invocable<F, E>::value,
+        "map_err must be called with a (template) F argument that is invokable "
+        "with E"
     );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, E>::type, void>::value,
+        "map_err must be called with a (template) F argument that "
+        "doesn't return void"
+    );
+    using MappedResult = Result<T, typename std::invoke_result<F, E>::type>;
+    using MappedError  = typename MappedResult::Error;
+
+    auto result = is_err()             //
+                      ? MappedResult(  //
+                            MappedError(std::invoke(
+                                std::forward<F>(f),
+                                (std::move(container_.err_))
+                            ))
+                        )
+                      : MappedResult(std::move(*this));
+    return std::move(result);
+  }
+
+  // --- Map or ---
+  // ___ copy ___
+  template <class F>
+  constexpr typename std::invoke_result<F, T>::type map_or(
+      typename std::invoke_result<F, T>::type d, F &&f
+  ) const & {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "map_or must be called with a (template) F argument that is invokable "
+        "with T"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "map_or must be called with a (template) F argument that doesn't "
+        "return void"
+    );
+    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
+    auto result =
+        is_ok() ? std::invoke(std::forward<F>(f), (container_.ok_)) : d;
+    return result;
+  }
+
+  // ___ move ___
+
+  template <class F>
+  constexpr typename std::invoke_result<F, T>::type &&map_or(
+      typename std::invoke_result<F, T>::type &&d, F &&f
+  ) && {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "map_or must be called with a (template) F argument that is invokable "
+        "with T "
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "map_or must be called with a (template) F argument that doesn't "
+        "return void"
+    );
+    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
+    auto result =
+        is_ok() ? std::invoke(std::forward<F>(f), std::move(container_.ok_))
+                : std::move(d);
+
+    return std::move(result);
+  }
+
+  // --- Map or else ---
+  // ___ copy ___
+  template <class F, class D>
+  constexpr typename std::invoke_result<F, T>::type map_or_else(D &&d, F &&f)
+      const & {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "map_or_else must be called with a (template) F argument that is "
+        "invokable with T"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "map_or_else must be called with a (template) F argument that doesn't "
+        "return void"
+    );
+    static_assert(
+        std::is_invocable<D, E>::value,
+        "map_or_else must be called with a (template) D argument that is "
+        "invokable with E"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<D, E>::type, void>::value,
+        "map_or_else must be called with a (template) D argument that doesn't "
+        "return void"
+    );
+    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
+    auto result = is_ok() ? std::invoke(std::forward<F>(f), (container_.ok_))
+                          : std::invoke(std::forward<D>(d), (container_.err_));
+    return result;
+  }
+
+  // ___ move ___
+
+  template <class F, class D>
+  constexpr typename std::invoke_result<F, T>::type &&map_or_else(
+      D &&d, F &&f
+  ) && {
+    static_assert(
+        std::is_invocable<F, T>::value,
+        "map_or_else must be called with a (template) F argument that is "
+        "invokable with T"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "map_or_else must be called with a (template) F argument that doesn't "
+        "return void"
+    );
+    static_assert(
+        std::is_invocable<D, E>::value,
+        "map_or_else must be called with a (template) D argument that is "
+        "invokable with E"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<D, E>::type, void>::value,
+        "map_or_else must be called with a (template) D argument that doesn't "
+        "return void"
+    );
+    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
+    auto result =
+        is_ok() ? std::invoke(std::forward<F>(f), (std::move(container_.ok_)))
+                : std::invoke(std::forward<D>(d), (std::move(container_.err_)));
+    return std::move(result);
+  }
+
+  // --- Inspect ---
+  // ___ copy ___
+  template <class F>
+  constexpr Result inspect(F &&f) const {
+    static_assert(
+        std::is_invocable<F, const T>::value,
+        "inspect must be called with a (template) F argument that is "
+        "invokable with const T"
+    );
+    static_assert(
+        std::is_same<typename std::invoke_result<F, const T>::type, void>::
+            value,
+        "inspect must be called with a (template) F argument that returns "
+        "void"
+    );
+    if (is_ok()) {
+      std::invoke(std::forward<F>(f), (const T)(container_.ok_));
+    }
+    return *this;
+  }
+
+  template <class F>
+  constexpr Result inspect_err(F &&f) const {
+    static_assert(
+        std::is_invocable<F, const E>::value,
+        "inspect_err must be called with a (template) F argument that is "
+        "invokable with const E"
+    );
+    static_assert(
+        std::is_same<typename std::invoke_result<F, const E>::type, void>::
+            value,
+        "inspect_err must be called with a (template) F argument that returns "
+        "void"
+    );
+    if (is_err()) {
+      std::invoke(std::forward<F>(f), (const E)(container_.err_));
+    }
+    return *this;
+  }
+
+  // --- Unwraps ---
+ public:
+  constexpr T unwrap() const & {
+    EMBERS_ASSERT(status_ == Status::kOk, "Unwrapping value of invalid result");
+    return container_.ok_;
+  }
+
+  constexpr T &&unwrap() && {
+    EMBERS_ASSERT(status_ == Status::kOk, "Unwrapping value of invalid result");
+    return std::move(container_.ok_);
+  }
+
+  constexpr E unwrap_err() const & {
+    EMBERS_ASSERT(status_ == Status::kErr, "Unwrapping error of valid result");
+    return container_.err_;
+  }
+
+  constexpr E &&unwrap_err() && {
+    EMBERS_ASSERT(status_ == Status::kErr, "Unwrapping error of valid result");
+    return std::move(container_.err_);
+  }
+
+  constexpr T unwrap_or(const T &other) const & {
+    return is_ok() ? container_.ok_ : other;
+  }
+
+  constexpr T &&unwrap_or(T &&other) && {
+    auto result = is_ok() ? std::move(container_.ok_) : std::move(other);
+    return std::move(result);
+  }
+
+  template <class F>
+  constexpr T unwrap_or_else(F &&f) const & {
+    static_assert(
+        std::is_invocable<F, E>::value,
+        "unwrap_or_else must be called with a (template) F argument that is "
+        "invokable with E"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "unwrap_or_else must be called with a (template) F argument that "
+        "doesn't return void"
+    );
+    return is_ok() ? container_.ok_
+                   : std::invoke(std::forward<F>(f), (container_.err_));
+    ;
+  }
+
+  template <class F>
+  constexpr T &&unwrap_or_else(F &&f) && {
+    static_assert(
+        std::is_invocable<F, E>::value,
+        "unwrap_or_else must be called with a (template) F argument that is "
+        "invokable with E"
+    );
+    static_assert(
+        !std::is_same<typename std::invoke_result<F, T>::type, void>::value,
+        "unwrap_or_else must be called with a (template) F argument that "
+        "doesn't return void"
+    );
+    auto result = is_ok() ? std::move(container_.ok_)
+                          : std::invoke(std::forward<F>(f), (container_.err_));
+    return std::move(result);
+  }
+
+  // --- And & Or ---
+  template <typename U>
+  constexpr Result<U, E> also(const Result<U, E> &other) const & {
+    return is_ok() ? other : Result<U, E>(*this);
+  }
+
+  template <typename F>
+  constexpr Result<T, F> otherwise(const Result<T, F> &other) const & {
+    return is_err() ? other : Result<T, F>(*this);
+  }
+
+  // ___ move ___
+  template <typename U>
+  constexpr Result<U, E> &&also(Result<U, E> &&other) && {
+    auto result = is_ok() ? std::move(other) : Result<U, E>(std::move(*this));
+    return std::move(result);
+  }
+
+  template <typename F>
+  constexpr Result<T, F> &&otherwise(Result<T, F> &&other) && {
+    auto result = is_err() ? std::move(other) : Result<T, F>(std::move(*this));
+    return std::move(result);
+  }
+
+  // --- Then & Else ---
+  template <typename U, class F>
+  constexpr Result<U, E> then(F &&f) const & {
+    return  //
+        is_ok()
+            ? Result<U, E>(std::invoke(std::forward<F>(f), (container_.ok_)))
+            : Result<U, E>(*this);
+  }
+
+  template <typename G, class F>
+  constexpr Result<T, G> alternatively(F &&f) const & {
+    return  //
+        is_err()
+            ? Result<T, G>(std::invoke(std::forward<F>(f), (container_.err_)))
+            : Result<T, G>(*this);
+  }
+
+  // ___ move ___
+  template <typename U, class F>
+  constexpr Result<U, E> &&then(F &&f) && {
+    auto result =
+        is_ok()
+            ? Result<U, E>(
+                  std::invoke(std::forward<F>(f), (std::move(container_.ok_)))
+              )
+            : Result<U, E>(std::move(*this));
+    return std::move(result);
+  }
+
+  template <typename G, class F>
+  constexpr Result<T, G> &&alternatively(F &&f) && {
+    auto result =
+        is_err()
+            ? Result<T, G>(
+                  std::invoke(std::forward<F>(f), (std::move(container_.err_)))
+              )
+            : Result<T, G>(std::move(*this));
+    return std::move(result);
   }
 };
-
 }  // namespace embers
