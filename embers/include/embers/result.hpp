@@ -651,10 +651,11 @@ class Result {
         "then must be called with a (template) F argument that doesn't "
         "return void"
     );
+    using MappedResult = Result<typename std::invoke_result<F, T>::type, E>;
     return  //
         is_ok()
-            ? Result<U, E>(std::invoke(std::forward<F>(f), (container_.ok_)))
-            : Result<U, E>(*this);
+            ? MappedResult(std::invoke(std::forward<F>(f), (container_.ok_)))
+            : MappedResult(*this);
   }
 
   template <class F>
@@ -672,10 +673,11 @@ class Result {
         "doesn't "
         "return void"
     );
+    using MappedResult = Result<T, typename std::invoke_result<F, E>::type>;
     return  //
         is_err()
-            ? Result<T, G>(std::invoke(std::forward<F>(f), (container_.err_)))
-            : Result<T, G>(*this);
+            ? MappedResult(std::invoke(std::forward<F>(f), (container_.err_)))
+            : MappedResult(*this);
   }
 
   // ___ move ___

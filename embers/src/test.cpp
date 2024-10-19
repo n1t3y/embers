@@ -117,56 +117,20 @@ embers::Result<int, ErrorCode> get_a_thing() {
     );
   }
 }
+#define LOG_INFO EMBERS_INFO
+// EMBERS_INFO(
+//     "Main called: {} ver. {} built @ " __DATE__ " " __TIME__,
+//     embers::config::engine_config.name,
+//     embers::config::engine_config.version
+// );
+
+// embers::config::Config config;
+
+// auto platform = Platform::create(config);
 
 int embers::test::main() {
-  // EMBERS_INFO(
-  //     "Main called: {} ver. {} built @ " __DATE__ " " __TIME__,
-  //     embers::config::engine_config.name,
-  //     embers::config::engine_config.version
-  // );
-
-  // embers::config::Config config;
-
-  // auto platform = Platform::create(config).value();
-
-  using embers::Result;
-
-  // auto                      b    = test.map([](int x) { return x * 2; });
-
-  // Result<u8, const char *>  a = Result<u8, const char *>::create_ok(10);
-  // Result<u64, const char *> b = a.map([](int x) { return (u64)(x * 2); });
-  // EMBERS_INFO("{}", b.has_value_and([](int x) { return x > 1; }));
-  // EMBERS_INFO("{}", typeid(b).name());  // Result<unsigned __int64,char const
-  // * __ptr64>
-
-  // AllowShortFunctionsOnASingleLine: None
-  // AllowShortIfStatementsOnASingleLine: None
-
-  auto a = get_a_thing().map([](int x) { return x * 32; }
-  ).map_err([](ErrorCode err) {
-    switch (err) {
-      case ErrorCode::kPermissionDenied:
-        return "Permission Denied";
-      case ErrorCode::kUnknown:
-      default:
-        return "Unknown";
-    }
-  });
-
-  if (a.has_value_and([](int a) { return true; })) {
-    EMBERS_INFO("Value: {}", a.value());
-  }
+  auto test = Result<int, const char *>::create_err("Nope");
+  LOG_INFO("Result: {}", test);
 
   return 0;
-}
-
-int brrr(
-    int          argc,
-    const char **argv,
-    const char **env,
-    const char **env1,
-    const char **env2
-) {
-  1;
-  return 1;
 }
