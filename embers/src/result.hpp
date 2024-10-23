@@ -185,6 +185,18 @@ class Result {
           std::is_same<typename std::invoke_result<F, E>::type, T>::value,
       T>;
 
+  template <typename U>
+  constexpr Result<U, E> also(const Result<U, E> &other) const &;
+
+  template <typename U>
+  constexpr Result<U, E> also(Result<U, E> &&other) &&;
+
+  template <typename U>
+  constexpr Result<T, U> otherwise(const Result<T, U> &other) const &;
+
+  template <typename U>
+  constexpr Result<T, U> otherwise(Result<T, U> &&other) &&;
+
  private:
  public:  // todo
   Container container_;
@@ -326,8 +338,7 @@ constexpr auto Result<T, E>::is_ok_and(F &&f) const & ->
     typename std::enable_if<
         std::is_same<typename std::invoke_result<F, T>::type, bool>::value,
         bool>::type {
-  return is_ok() &&  //
-         std::invoke(std::forward<F>(f), copy_ok());
+  return is_ok() && std::invoke(std::forward<F>(f), copy_ok());
 }
 
 template <typename T, typename E>
@@ -335,8 +346,7 @@ template <typename F>
 constexpr auto Result<T, E>::is_ok_and(F &&f) && -> typename std::enable_if<
     std::is_same<typename std::invoke_result<F, T>::type, bool>::value,
     bool>::type {
-  return is_ok() &&  //
-         std::invoke(std::forward<F>(f), std::move(*this).move_ok());
+  return is_ok() && std::invoke(std::forward<F>(f), std::move(*this).move_ok());
 };
 
 template <typename T, typename E>
@@ -345,8 +355,7 @@ constexpr auto Result<T, E>::is_err_and(F &&f) const & ->
     typename std::enable_if<
         std::is_same<typename std::invoke_result<F, E>::type, bool>::value,
         bool>::type {
-  return is_err() &&  //
-         std::invoke(std::forward<F>(f), copy_err());
+  return is_err() && std::invoke(std::forward<F>(f), copy_err());
 }
 
 template <typename T, typename E>
@@ -354,7 +363,7 @@ template <typename F>
 constexpr auto Result<T, E>::is_err_and(F &&f) && -> typename std::enable_if<
     std::is_same<typename std::invoke_result<F, E>::type, bool>::value,
     bool>::type {
-  return is_err() &&  //
+  return is_err() &&
          std::invoke(std::forward<F>(f), std::move(*this).move_err());
 };
 
@@ -587,6 +596,33 @@ constexpr auto Result<T, E>::unwrap_or_else(F &&f) && ->
             std::is_same<typename std::invoke_result<F, E>::type, T>::value,
         T> {
   return is_ok() ? std::move(*this).move_ok() : std::move(*this).move_err();
+}
+
+template <typename T, typename E>
+template <typename U>
+constexpr Result<U, E> Result<T, E>::also(const Result<U, E> &other) const & {
+  return is_ok() ? other : Result<U, E>::create_err(copy_err());
+}
+
+template <typename T, typename E>
+template <typename U>
+constexpr Result<U, E> Result<T, E>::also(Result<U, E> &&other) && {
+  return is_ok() ? std::move(other)
+                 : Result<U, E>::create_err(std::move(*this).move_err());
+}
+
+template <typename T, typename E>
+template <typename U>
+constexpr Result<T, U> Result<T, E>::otherwise(const Result<T, U> &other
+) const & {
+  return is_err() ? other : Result<T, U>::create_ok(copy_ok());
+}
+
+template <typename T, typename E>
+template <typename U>
+constexpr Result<T, U> Result<T, E>::otherwise(Result<T, U> &&other) && {
+  return is_err() ? std::move(other)
+                  : Result<T, U>::create_ok(std::move(*this).move_ok());
 }
 
 }  // namespace embers
