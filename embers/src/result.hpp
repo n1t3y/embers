@@ -206,6 +206,25 @@ class Result {
   constexpr auto inspect_err(F &&f) & -> typename std::
       enable_if<std::is_invocable<F>::value, Result<T, E> &>::type;
 
+  constexpr T unwrap() const &;
+  constexpr T unwrap() &&;
+  constexpr E unwrap_err() const &;
+  constexpr E unwrap_err() &&;
+  constexpr T unwrap_or(const T &other) const &;
+  constexpr T unwrap_or(T &&other) &&;
+
+  template <typename F>
+  constexpr auto unwrap_or_else(F &&f) const & -> typename std::enable_if<
+      std::is_invocable<F, E>::value &&
+          std::is_same<typename std::invoke_result<F, E>::type, T>::value,
+      T>;
+
+  template <typename F>
+  constexpr auto unwrap_or_else(F &&f) && -> typename std::enable_if<
+      std::is_invocable<F, E>::value &&
+          std::is_same<typename std::invoke_result<F, E>::type, T>::value,
+      T>;
+
  private:
  public:  // todo
   Container container_;
@@ -655,6 +674,51 @@ constexpr auto Result<T, E>::inspect_err(F &&f) & ->
     std::invoke(std::forward<F>(f));
   }
   return *this;
+}
+
+template <typename T, typename E>
+constexpr T Result<T, E>::unwrap() const & {
+  return copy_ok();
+}
+template <typename T, typename E>
+constexpr T Result<T, E>::unwrap() && {
+  return std::move(*this).move_ok();
+}
+template <typename T, typename E>
+constexpr E Result<T, E>::unwrap_err() const & {
+  return copy_err();
+}
+template <typename T, typename E>
+constexpr E Result<T, E>::unwrap_err() && {
+  return std::move(*this).move_err();
+}
+template <typename T, typename E>
+constexpr T Result<T, E>::unwrap_or(const T &other) const & {
+  return is_ok() ? copy_ok() : copy_err();
+}
+template <typename T, typename E>
+constexpr T Result<T, E>::unwrap_or(T &&other) && {
+  return is_ok() ? std::move(*this).move_ok() : std::move(*this).move_err();
+}
+
+template <typename T, typename E>
+template <typename F>
+constexpr auto Result<T, E>::unwrap_or_else(F &&f) const & ->
+    typename std::enable_if<
+        std::is_invocable<F, E>::value &&
+            std::is_same<typename std::invoke_result<F, E>::type, T>::value,
+        T> {
+  return is_ok() ? copy_ok() : copy_err();
+}
+
+template <typename T, typename E>
+template <typename F>
+constexpr auto Result<T, E>::unwrap_or_else(F &&f) && ->
+    typename std::enable_if<
+        std::is_invocable<F, E>::value &&
+            std::is_same<typename std::invoke_result<F, E>::type, T>::value,
+        T> {
+  return is_ok() ? std::move(*this).move_ok() : std::move(*this).move_err();
 }
 
 }  // namespace embers
