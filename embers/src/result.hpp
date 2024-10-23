@@ -69,14 +69,6 @@ class Result {
       std::is_same<typename std::invoke_result<F, T>::type, bool>::value,
       bool>::type;
 
-  template <typename F>
-  constexpr auto is_ok_and(F &&f) const & -> typename std::enable_if<
-      std::is_same<typename std::invoke_result<F>::type, bool>::value,
-      bool>::type;
-
-  template <typename F>
-  constexpr auto is_ok_and(bool value) const & -> bool;
-
   // -- errs --
   template <typename F>
   constexpr auto is_err_and(F &&f) const & -> typename std::enable_if<
@@ -87,14 +79,6 @@ class Result {
   constexpr auto is_err_and(F &&f) && -> typename std::enable_if<
       std::is_same<typename std::invoke_result<F, E>::type, bool>::value,
       bool>::type;
-
-  template <typename F>
-  constexpr auto is_err_and(F &&f) const & -> typename std::enable_if<
-      std::is_same<typename std::invoke_result<F>::type, bool>::value,
-      bool>::type;
-
-  template <typename F>
-  constexpr auto is_err_and(bool value) const & -> bool;
 
   // --- conversion into options ---
 
@@ -161,24 +145,12 @@ class Result {
       enable_if<std::is_invocable<F, T>::value, const Result<T, E> &>::type;
 
   template <typename F>
-  constexpr auto inspect(F &&f) const & -> typename std::
-      enable_if<std::is_invocable<F>::value, const Result<T, E> &>::type;
-
-  template <typename F>
   constexpr auto inspect(F &&f) && -> typename std::
       enable_if<std::is_invocable<F, T>::value, Result<T, E>>::type;
 
   template <typename F>
-  constexpr auto inspect(F &&f) && ->
-      typename std::enable_if<std::is_invocable<F>::value, Result<T, E>>::type;
-
-  template <typename F>
   constexpr auto inspect(F &&f) & -> typename std::
       enable_if<std::is_invocable<F, T>::value, Result<T, E> &>::type;
-
-  template <typename F>
-  constexpr auto inspect(F &&f) & -> typename std::
-      enable_if<std::is_invocable<F>::value, Result<T, E> &>::type;
 
   // template <typename F>
 
@@ -187,24 +159,12 @@ class Result {
       enable_if<std::is_invocable<F, E>::value, const Result<T, E> &>::type;
 
   template <typename F>
-  constexpr auto inspect_err(F &&f) const & -> typename std::
-      enable_if<std::is_invocable<F>::value, const Result<T, E> &>::type;
-
-  template <typename F>
   constexpr auto inspect_err(F &&f) && -> typename std::
       enable_if<std::is_invocable<F, E>::value, Result<T, E>>::type;
 
   template <typename F>
-  constexpr auto inspect_err(F &&f) && ->
-      typename std::enable_if<std::is_invocable<F>::value, Result<T, E>>::type;
-
-  template <typename F>
   constexpr auto inspect_err(F &&f) & -> typename std::
       enable_if<std::is_invocable<F, E>::value, Result<T, E> &>::type;
-
-  template <typename F>
-  constexpr auto inspect_err(F &&f) & -> typename std::
-      enable_if<std::is_invocable<F>::value, Result<T, E> &>::type;
 
   constexpr T unwrap() const &;
   constexpr T unwrap() &&;
@@ -381,22 +341,6 @@ constexpr auto Result<T, E>::is_ok_and(F &&f) && -> typename std::enable_if<
 
 template <typename T, typename E>
 template <typename F>
-constexpr auto Result<T, E>::is_ok_and(F &&f) const & ->
-    typename std::enable_if<
-        std::is_same<typename std::invoke_result<F>::type, bool>::value,
-        bool>::type {
-  return is_ok() &&  //
-         std::invoke(std::forward<F>(f));
-}
-
-template <typename T, typename E>
-template <typename F>
-constexpr auto Result<T, E>::is_ok_and(bool value) const & -> bool {
-  return is_ok() && value;
-};
-
-template <typename T, typename E>
-template <typename F>
 constexpr auto Result<T, E>::is_err_and(F &&f) const & ->
     typename std::enable_if<
         std::is_same<typename std::invoke_result<F, E>::type, bool>::value,
@@ -412,22 +356,6 @@ constexpr auto Result<T, E>::is_err_and(F &&f) && -> typename std::enable_if<
     bool>::type {
   return is_err() &&  //
          std::invoke(std::forward<F>(f), std::move(*this).move_err());
-};
-
-template <typename T, typename E>
-template <typename F>
-constexpr auto Result<T, E>::is_err_and(F &&f) const & ->
-    typename std::enable_if<
-        std::is_same<typename std::invoke_result<F>::type, bool>::value,
-        bool>::type {
-  return is_err() &&  //
-         std::invoke(std::forward<F>(f));
-}
-
-template <typename T, typename E>
-template <typename F>
-constexpr auto Result<T, E>::is_err_and(bool value) const & -> bool {
-  return is_err() && value;
 };
 
 template <typename T, typename E>
@@ -566,16 +494,6 @@ constexpr auto Result<T, E>::inspect(F &&f) const & -> typename std::
 
 template <typename T, typename E>
 template <typename F>
-constexpr auto Result<T, E>::inspect(F &&f) const & -> typename std::
-    enable_if<std::is_invocable<F>::value, const Result<T, E> &>::type {
-  if (is_ok()) {
-    std::invoke(std::forward<F>(f));
-  }
-  return *this;
-}
-
-template <typename T, typename E>
-template <typename F>
 constexpr auto Result<T, E>::inspect(F &&f) && -> typename std::
     enable_if<std::is_invocable<F, T>::value, Result<T, E>>::type {
   if (is_ok()) {
@@ -586,30 +504,10 @@ constexpr auto Result<T, E>::inspect(F &&f) && -> typename std::
 
 template <typename T, typename E>
 template <typename F>
-constexpr auto Result<T, E>::inspect(F &&f) && ->
-    typename std::enable_if<std::is_invocable<F>::value, Result<T, E>>::type {
-  if (is_ok()) {
-    std::invoke(std::forward<F>(f));
-  }
-  return Result<T, E>(std::move(*this));
-}
-
-template <typename T, typename E>
-template <typename F>
 constexpr auto Result<T, E>::inspect(F &&f) & -> typename std::
     enable_if<std::is_invocable<F, T>::value, Result<T, E> &>::type {
   if (is_ok()) {
     std::invoke(std::forward<F>(f), copy_ok());
-  }
-  return *this;
-}
-
-template <typename T, typename E>
-template <typename F>
-constexpr auto Result<T, E>::inspect(F &&f) & ->
-    typename std::enable_if<std::is_invocable<F>::value, Result<T, E> &>::type {
-  if (is_ok()) {
-    std::invoke(std::forward<F>(f));
   }
   return *this;
 }
@@ -628,16 +526,6 @@ constexpr auto Result<T, E>::inspect_err(F &&f) const & -> typename std::
 
 template <typename T, typename E>
 template <typename F>
-constexpr auto Result<T, E>::inspect_err(F &&f) const & -> typename std::
-    enable_if<std::is_invocable<F>::value, const Result<T, E> &>::type {
-  if (is_err()) {
-    std::invoke(std::forward<F>(f));
-  }
-  return *this;
-}
-
-template <typename T, typename E>
-template <typename F>
 constexpr auto Result<T, E>::inspect_err(F &&f) && -> typename std::
     enable_if<std::is_invocable<F, E>::value, Result<T, E>>::type {
   if (is_err()) {
@@ -648,30 +536,10 @@ constexpr auto Result<T, E>::inspect_err(F &&f) && -> typename std::
 
 template <typename T, typename E>
 template <typename F>
-constexpr auto Result<T, E>::inspect_err(F &&f) && ->
-    typename std::enable_if<std::is_invocable<F>::value, Result<T, E>>::type {
-  if (is_err()) {
-    std::invoke(std::forward<F>(f));
-  }
-  return Result<T, E>(std::move(*this));
-}
-
-template <typename T, typename E>
-template <typename F>
 constexpr auto Result<T, E>::inspect_err(F &&f) & -> typename std::
     enable_if<std::is_invocable<F, E>::value, Result<T, E> &>::type {
   if (is_err()) {
     std::invoke(std::forward<F>(f), copy_err());
-  }
-  return *this;
-}
-
-template <typename T, typename E>
-template <typename F>
-constexpr auto Result<T, E>::inspect_err(F &&f) & ->
-    typename std::enable_if<std::is_invocable<F>::value, Result<T, E> &>::type {
-  if (is_err()) {
-    std::invoke(std::forward<F>(f));
   }
   return *this;
 }
