@@ -218,7 +218,6 @@ class Result {
       Result<T, typename std::invoke_result<F, E>::type>>;
 
  private:
- public:  // todo
   Container container_;
   State     state_ = State::kNotInit;
 };
@@ -300,6 +299,10 @@ Result<T, E>::~Result() {
 
 template <typename T, typename E>
 constexpr T Result<T, E>::move_ok() && {
+  EMBERS_ASSERT(
+      state_ == State::kOk,
+      "Calling move_ok on result with non ok state"
+  );
   T arg  = std::move(container_.ok_);
   state_ = State::kNotInit;
   return arg;  // copy elision, no move
@@ -307,6 +310,10 @@ constexpr T Result<T, E>::move_ok() && {
 
 template <typename T, typename E>
 constexpr E Result<T, E>::move_err() && {
+  EMBERS_ASSERT(
+      state_ == State::kErr,
+      "Calling move_err on result with non err state"
+  );
   E arg  = std::move(container_.err_);
   state_ = State::kNotInit;
   return arg;  // copy elision, no move
@@ -314,11 +321,19 @@ constexpr E Result<T, E>::move_err() && {
 
 template <typename T, typename E>
 constexpr const T &Result<T, E>::copy_ok() const & {
+  EMBERS_ASSERT(
+      state_ == State::kOk,
+      "Calling copy_ok on result with non ok state"
+  );
   return container_.ok_;  // copy elision, no move
 }
 
 template <typename T, typename E>
 constexpr const E &Result<T, E>::copy_err() const & {
+  EMBERS_ASSERT(
+      state_ == State::kErr,
+      "Calling copy_err on result with non err state"
+  );
   return container_.err_;  // copy elision, no move
 }
 
@@ -705,10 +720,10 @@ class fmt::formatter<embers::Result<T, E>> {
   template <typename Context>
   constexpr auto format(Result const &result, Context &ctx) const {
     if (result.is_ok()) {
-      return format_to(ctx.out(), "Ok({:?})", result.container_.ok_);  // todo
+      return format_to(ctx.out(), "Ok({:?})", result.unwrap());
     }
     if (result.is_err()) {
-      return format_to(ctx.out(), "Err({:?})", result.container_.err_);  // todo
+      return format_to(ctx.out(), "Err({:?})", result.unwrap_err());
     }
     return format_to(ctx.out(), "NotInit");
   }
