@@ -197,6 +197,26 @@ class Result {
   template <typename U>
   constexpr Result<T, U> otherwise(Result<T, U> &&other) &&;
 
+  template <typename F>
+  constexpr auto then(F &&f) const & -> std::enable_if<
+      std::is_invocable<F, T>::value,
+      Result<typename std::invoke_result<F, T>::type, E>>;
+
+  template <typename F>
+  constexpr auto then(F &&f) && -> std::enable_if<
+      std::is_invocable<F, T>::value,
+      Result<typename std::invoke_result<F, T>::type, E>>;
+
+  template <typename F>
+  constexpr auto alternatively(F &&f) const & -> std::enable_if<
+      std::is_invocable<F, E>::value,
+      Result<T, typename std::invoke_result<F, E>::type>>;
+
+  template <typename F>
+  constexpr auto alternatively(F &&f) && -> std::enable_if<
+      std::is_invocable<F, E>::value,
+      Result<T, typename std::invoke_result<F, E>::type>>;
+
  private:
  public:  // todo
   Container container_;
@@ -623,6 +643,55 @@ template <typename U>
 constexpr Result<T, U> Result<T, E>::otherwise(Result<T, U> &&other) && {
   return is_err() ? std::move(other)
                   : Result<T, U>::create_ok(std::move(*this).move_ok());
+}
+
+template <typename T, typename E>
+template <typename F>
+constexpr auto Result<T, E>::then(F &&f) const & -> std::enable_if<
+    std::is_invocable<F, T>::value,
+    Result<typename std::invoke_result<F, T>::type, E>> {
+  using ReturnType = Result<typename std::invoke_result<F, T>::type, E>;
+  return is_ok()
+             ? ReturnType::create_ok(std::invoke(std::forward<F>(f), copy_ok()))
+             : ReturnType::create_err(copy_err());
+}
+
+template <typename T, typename E>
+template <typename F>
+constexpr auto Result<T, E>::then(F &&f) && -> std::enable_if<
+    std::is_invocable<F, T>::value,
+    Result<typename std::invoke_result<F, T>::type, E>> {
+  using ReturnType = Result<typename std::invoke_result<F, T>::type, E>;
+  return is_ok()
+             ? ReturnType::create_ok(
+                   std::invoke(std::forward<F>(f), std::move(*this).move_ok())
+               )
+             : ReturnType::create_err(std::move(*this).move_err());
+}
+
+template <typename T, typename E>
+template <typename F>
+constexpr auto Result<T, E>::alternatively(F &&f) const & -> std::enable_if<
+    std::is_invocable<F, E>::value,
+    Result<T, typename std::invoke_result<F, E>::type>> {
+  using ReturnType = Result<T, typename std::invoke_result<F, E>::type>;
+  return is_err() ? ReturnType::create_err(
+                        std::invoke(std::forward<F>(f), copy_err())
+                    )
+                  : ReturnType::create_ok(copy_ok());
+}
+
+template <typename T, typename E>
+template <typename F>
+constexpr auto Result<T, E>::alternatively(F &&f) && -> std::enable_if<
+    std::is_invocable<F, E>::value,
+    Result<T, typename std::invoke_result<F, E>::type>> {
+  using ReturnType = Result<T, typename std::invoke_result<F, E>::type>;
+  return is_err()
+             ? ReturnType::create_err(
+                   std::invoke(std::forward<F>(f), std::move(*this).move_err())
+               )
+             : ReturnType::create_ok(std::move(*this).move_ok());
 }
 
 }  // namespace embers
