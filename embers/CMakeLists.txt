@@ -30,6 +30,7 @@ add_library(
 	src/test.cpp
 	src/logger.cpp
 	src/engine_config.cpp
+	src/window.cpp
 )
 
 target_include_directories(
