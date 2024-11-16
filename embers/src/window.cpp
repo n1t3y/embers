@@ -6,11 +6,11 @@
 
 namespace embers {
 
-Result<Window, Error> Window::create(u32 width, u32 height, const char *title) {
-  GLFWwindow *glfw_window = nullptr;
-  Error       error       = Error::kUnknown;
-  int         glfw_error;
+Window::Window(u32 width, u32 height, const char *title) {
+  Error error = Error::kUnknown;
+  int   glfw_error;
 
+  // GLFW
   glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_PREFER_LIBDECOR);
   if (glfw_inits_ == 0) {
     if (glfwInit() != GLFW_TRUE) {
@@ -20,17 +20,20 @@ Result<Window, Error> Window::create(u32 width, u32 height, const char *title) {
     glfw_inits_++;
     EMBERS_DEBUG("Glfw initialized");
   }
+
+  // Window
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-  glfw_window = glfwCreateWindow(width, height, title, NULL, NULL);
-
-  if (glfw_window == NULL) {
+  window_ = glfwCreateWindow(width, height, title, NULL, NULL);
+  if (window_ == NULL) {
     error = Error::kCreateWindow;
     goto window_fail_window;
   }
-  EMBERS_DEBUG("Glfw window created: {}", fmt::ptr(glfw_window));
-  return embers::Result<Window, Error>::create_ok(Window(glfw_window));
+  EMBERS_DEBUG("Glfw window created: {}", fmt::ptr(window_));
+
+  // Everything is fine
+  return;
+  // if it is not fine:
 window_fail_window:
   glfw_inits_--;
   if (glfw_inits_ == 0) {
@@ -38,14 +41,18 @@ window_fail_window:
   }
 window_fail_init:
   glfw_error = glfwGetError(NULL);
-  EMBERS_ERROR("Unable to init platform; glfwGetError: {}", glfw_error);
-  return embers::Result<Window, Error>::create_err(error);
+  EMBERS_ERROR(
+      "Unable to init Embers window; glfwGetError: {}; Zombie window is going "
+      "to be created",
+      glfw_error
+  );
+
+  window_     = nullptr;
+  last_error_ = error;
+  return;
 }
 
-Window::~Window() {
-  if (window_ == nullptr) {
-    return;
-  }
+void Window::destroy() {
   EMBERS_DEBUG("Glfw window destroyed: {}", fmt::ptr(window_));
   glfwDestroyWindow(window_);
   glfw_inits_--;
@@ -53,9 +60,11 @@ Window::~Window() {
     EMBERS_DEBUG("Glfw terminated");
     glfwTerminate();
   }
-  EMBERS_INFO("Window terminated");
+  EMBERS_INFO("Embers Window terminated");
+  return;
 }
 
-u32 embers::window::Window::glfw_inits_ = 0;
+u32           Window::glfw_inits_ = 0;
+Window::Error Window::last_error_ = Window::Error::kUnknown;
 
 }  // namespace embers

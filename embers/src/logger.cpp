@@ -1,33 +1,44 @@
 #include <embers/defines.hpp>
 #include <embers/logger.hpp>
 
-const i32 LOG_LEVELS = 5;
-static_assert(
-    (int)embers::logger::Level::kMax - (int)embers::logger::Level::kMin ==
-        LOG_LEVELS - 1,
-    "Log level strings must not be out of bounds"
-);
+namespace embers::logger {
+
+constexpr const char *LOG_FILE_NAME = "log.txt";
+constexpr const i32   LOG_LEVELS    = (int)Level::kMax - (int)Level::kMin + 1;
 
 static const struct {
   fmt::string_view console;
   fmt::string_view file;
 } FORMATS[LOG_LEVELS] = {
-    {"\033[30;106m[Debug]\033[0m\033[36m @ {:16} > {}\033[0m\n",
-     "[Debug] @ {:16} > {}\n"},
-    {"\033[30;102m[Info]\033[0m \033[32m @ {:16} > {}\033[0m\n",
-     "[Info]  @ {:16} > {}\n"},
-    {"\033[30;103m[Warn]\033[0m \033[33m @ {:16} > {}\033[0m\n",
-     "[Warn]  @ {:16} > {}\n"},
-    {"\033[30;101m[Error]\033[0m\033[31m @ {:16} > {}\033[0m\n",
-     "[Error] @ {:16} > {}\n"},
-    {"\033[97;101m[╯°□°╯]\033[0m\033[31m @ {:16} > {}\033[0m\n",
-     "[Fatal] @ {:16} > {}\n"}
+    {"\033[30;106m[Debug]\033[0m\033[36m @ {:48} > {}\033[0m\n",
+     "[Debug] @ {:48} > {}\n"},
+    {"\033[30;102m[Info]\033[0m \033[32m @ {:48} > {}\033[0m\n",
+     "[Info]  @ {:48} > {}\n"},
+    {"\033[30;103m[Warn]\033[0m \033[33m @ {:48} > {}\033[0m\n",
+     "[Warn]  @ {:48} > {}\n"},
+    {"\033[30;101m[Error]\033[0m\033[31m @ {:48} > {}\033[0m\n",
+     "[Error] @ {:48} > {}\n"},
+    {"\033[97;101m[╯°□°╯]\033[0m\033[31m @ {:48} > {}\033[0m\n",
+     "[Fatal] @ {:48} > {}\n"}
 };
 
-static FILE *open_log_file() {
-  using Level = embers::logger::Level;
+static FILE *open_log_file();
 
-  const char *filename = "log.txt";
+void internal::vlog(
+    Level            level,
+    const char      *system,
+    fmt::string_view format,
+    fmt::format_args args
+);
+
+}  // namespace embers::logger
+
+// implementation
+
+namespace embers::logger {
+
+static FILE *open_log_file() {
+  const char *filename = LOG_FILE_NAME;
   FILE       *log_file;
   errno_t     err = fopen_s(&log_file, filename, "w");
   if (err == 0) {
@@ -57,7 +68,7 @@ static FILE *open_log_file() {
   return nullptr;
 }
 
-void embers::logger::internal::vlog(
+void internal::vlog(
     Level            level,
     const char      *system,
     fmt::string_view format,
@@ -79,4 +90,7 @@ void embers::logger::internal::vlog(
   if (log_file != nullptr) {
     fmt::print(log_file, fmt::runtime(formats.file), system, message);
   }
+  return;
 }
+
+}  // namespace embers::logger

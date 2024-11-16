@@ -3,82 +3,51 @@
 #include <embers/logger.hpp>
 #include <embers/test.hpp>
 #include <iostream>
+#include <vector>
 
+#include "containers/allocator.hpp"
+#include "ecs/entity.hpp"
 #include "engine_config.hpp"
 #include "error_code.hpp"
 #include "platform.hpp"
 #include "window.hpp"
 
-enum class PlatformError : embers::ErrorCodeType {
-  kOk             = (embers::ErrorCodeType)embers::ErrorCode::kOk,
-  kUnknown        = (embers::ErrorCodeType)embers::ErrorCode::kUnknown,
-  kWindowInitGLFW = (embers::ErrorCodeType)embers::ErrorCode::kWindowInitGLFW,
-  kWindowCreateWindow =
-      (embers::ErrorCodeType)embers::ErrorCode::kWindowCreateWindow,
-};
-
-class Platform {
-  embers::window::Window window_;
-  bool                   valid_;
-
-  explicit Platform(embers::window::Window &&window)
-      : window_(std::move(window)), valid_(true) {};
-
- public:
-  Platform() = delete;
-
-  Platform(const Platform &platform) = delete;
-  Platform(Platform &&platform) : window_(std::move(platform.window_)) {
-    valid_          = platform.valid_;
-    platform.valid_ = false;
-  }
-
-  static embers::Result<Platform, PlatformError> create(
-      const embers::config::Config &config
-  );
-  ~Platform();
-};
-
-embers::Result<Platform, PlatformError> Platform::create(
-    const embers::config::Config &config
-) {
-  return embers::window::Window::create(
-             config.resolution.width,
-             config.resolution.height,
-             config.application_name
-  )
-      .map([](embers::window::Window &&window) {
-        return Platform(std::move(window));
-      })
-      .inspect_err([](const auto &err) {
-        EMBERS_ERROR(
-            "Unable to init platform: couldn't initialize the window: {}",
-            (embers::ErrorCodeType)err
-        );
-      })
-      .map_err([](embers::window::Error &&err) { return (PlatformError)(err); })
-      .inspect([](const auto &platform) { EMBERS_INFO("Platform initialized"); }
-      );
-}
-
-Platform::~Platform() {
-  if (!valid_) {
-    return;
-  }
-
-  EMBERS_INFO("Platform terminated");
-}
-
 int embers::test::main() {
   EMBERS_INFO(
       "Main called: {} ver. {} built @ " __DATE__ " " __TIME__,
-      embers::config::engine_config.name,
-      embers::config::engine_config.version
+      embers::config::engine.name,
+      embers::config::engine.version
   );
 
-  embers::config::Config config;
+  embers::config::Platform config;
 
-  auto platform = Platform::create(config);
+  auto platform = embers::Platform(config);
+
+  if (!(bool)platform) {
+    auto err = embers::to_error_code(embers::Platform::get_last_error());
+    EMBERS_DEBUG("{}", err);
+    return 1;
+  }
+
+  // EMBERS_INFO("Window {}", fmt::ptr((GLFWwindow *)window));
+
+  // auto platform = Platform::create(config).unwrap();
+
+  // embers::ecs::Entity entity;
+
+  // entity.index_   = 0xff;
+  // entity.counter_ = 0xcc;
+
+  // EMBERS_INFO("Entity: {:#x}", entity.index_and_counter_);
+
+  // std::vector<int, embers::containers::TestAllocator<int>> test_vector =
+  //     {1, 2, 3, 5, 6, 7};
+
+  // for (auto &&i : test_vector) {
+  //   EMBERS_INFO("- {}", i);
+  // }
+
+  // test_vector.push_back(1);
 
   return 0;
 }

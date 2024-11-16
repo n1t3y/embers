@@ -1,7 +1,7 @@
 #pragma once
 #include <embers/defines.hpp>
+
 #include "error_code.hpp"
-#include "result.hpp"
 
 typedef struct GLFWwindow GLFWwindow;
 
@@ -22,19 +22,61 @@ class Window {
   GLFWwindow  *window_;
 
   constexpr Window(GLFWwindow *window) : window_(window) {}
+  void destroy();
 
  public:
-  Window()                     = delete;
+  Window() = delete;
+  Window(u32 width, u32 height, const char *title);
   Window(const Window &window) = delete;
   constexpr Window(Window &&window);
-  ~Window();
+  inline ~Window();
 
-  static Result<Window, Error> create(u32 width, u32 height, const char *title);
+  constexpr explicit                operator bool() const;
+  constexpr explicit                operator GLFWwindow *() const;
+  Window                           &operator=(const Window &rhs) = delete;
+  constexpr Window                 &operator=(Window &&rhs);
+  constexpr bool                    operator==(const Window &rhs) const;
+  constexpr bool                    operator!=(const Window &rhs) const;
+  EMBERS_ALWAYS_INLINE static Error get_last_error();
 };
-}  // namespace embers::window
+}  // namespace embers
 
-namespace embers::window {
+// implementation
+
+namespace embers {
+
 constexpr Window::Window(Window &&window) : window_(window.window_) {
-  window_ = nullptr;
+  window.window_ = nullptr;
+  return;
 }
-}  // namespace embers::window
+
+inline Window::~Window() {
+  if (window_ == nullptr) {
+    return;
+  }
+  destroy();
+  return;
+}
+
+constexpr Window::operator bool() const { return window_ != nullptr; }
+constexpr Window::operator GLFWwindow *() const { return window_; }
+
+constexpr Window &Window::operator=(Window &&rhs) {
+  window_     = rhs.window_;
+  rhs.window_ = nullptr;
+  return *this;
+}
+
+constexpr bool Window::operator==(const Window &rhs) const {
+  return window_ == rhs.window_;
+}
+
+constexpr bool Window::operator!=(const Window &rhs) const {
+  return !operator==(rhs);
+}
+
+EMBERS_ALWAYS_INLINE Window::Error Window::get_last_error() {
+  return last_error_;
+}
+
+}  // namespace embers

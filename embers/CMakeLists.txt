@@ -6,9 +6,9 @@ project(embers VERSION 0.0.1 LANGUAGES C CXX)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-
-
-
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
@@ -31,6 +31,7 @@ add_library(
 	src/logger.cpp
 	src/engine_config.cpp
 	src/window.cpp
+	src/platform.cpp
 )
 
 target_include_directories(
