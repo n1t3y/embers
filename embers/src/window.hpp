@@ -1,21 +1,25 @@
 #pragma once
+#include <embers/defines.hpp>
 #include "error_code.hpp"
 #include "result.hpp"
 
 typedef struct GLFWwindow GLFWwindow;
 
-namespace embers::window {
-
-enum class Error : ErrorCodeType {
-  kOk           = (ErrorCodeType)ErrorCode::kOk,
-  kUnknown      = (ErrorCodeType)ErrorCode::kUnknown,
-  kInitGLFW     = (ErrorCodeType)ErrorCode::kWindowInitGLFW,
-  kCreateWindow = (ErrorCodeType)ErrorCode::kWindowCreateWindow,
-};
+namespace embers {
 
 class Window {
-  static u32  glfw_inits_;
-  GLFWwindow *window_;
+ public:
+  enum class Error : ErrorType {
+    kOk           = (ErrorType)embers::Error::kOk,
+    kUnknown      = (ErrorType)embers::Error::kUnknown,
+    kInitGLFW     = (ErrorType)embers::Error::kWindowInitGLFW,
+    kCreateWindow = (ErrorType)embers::Error::kWindowCreateWindow,
+  };
+
+ private:
+  static Error last_error_;
+  static u32   glfw_inits_;
+  GLFWwindow  *window_;
 
   constexpr Window(GLFWwindow *window) : window_(window) {}
 

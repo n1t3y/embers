@@ -2,12 +2,13 @@
 
 #include <GLFW/glfw3.h>
 
-#include <embers/defines/types.hpp>
+#include <embers/defines.hpp>
 
 namespace embers {
-using ErrorCodeType = u32;
 
-enum class ErrorCode : ErrorCodeType {
+using ErrorType = u32;
+
+enum class Error : ErrorType {
   kOk                 = 0x00000000,
   kUnknown            = 0x00000001,
   kWindowInitGLFW     = 0x00000010,

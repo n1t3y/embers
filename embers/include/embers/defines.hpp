@@ -1,6 +1,59 @@
-#pragma once
-
 #include <cstdint>
+
+// --- Some utils ---
+
+#if defined(_WIN32)
+#define EMBERS_DLL_IMPORT __declspec(dllimport)
+#define EMBERS_DLL_EXPORT __declspec(dllexport)
+#elif __GNUC__ >= 4
+#define EMBERS_DLL_IMPORT __attribute__((visibility("default")))
+#define EMBERS_DLL_EXPORT __attribute__((visibility("default")))
+#else
+#define EMBERS_DLL_IMPORT
+#define EMBERS_DLL_EXPORT
+#endif
+
+#if !defined(EMBERS_DLL)
+#define EMBERS_API
+#elif defined(EMBERS_DLL_EXPORTS)
+#define EMBERS_API EMBERS_DLL_EXPORT
+#else
+#define EMBERS_API EMBERS_DLL_IMPORT
+#endif
+
+#if defined(_MSC_VER)
+#define EMBERS_ALWAYS_INLINE __forceinline
+#else
+#define EMBERS_ALWAYS_INLINE __attribute__((always_inline)) inline
+
+#endif
+
+#define _EMBERS__STRINGIFY_INTERNAL(x) #x
+#define EMBERS_STRINGIFY(x)            _EMBERS__STRINGIFY_INTERNAL(x)
+
+// is used by logger, use short names (when possible)
+#if defined(__FILE_NAME__)
+#define EMBERS_FILENAME __FILE_NAME__
+#elif defined(__FILE__)
+#define EMBERS_FILENAME __FILE__
+#else
+#define EMBERS_FILENAME "unknown_file"
+#endif
+
+#if defined(__has_builtin) && !defined(__ibmxl__)
+#if __has_builtin(__builtin_debugtrap)
+#define EMBERS_DEBUGBREAK() __builtin_debugtrap()
+#elif __has_builtin(__debugbreak)
+#define EMBERS_DEBUGBREAK() __debugbreak()
+#endif
+#endif
+#if !defined(EMBERS_DEBUGBREAK)
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#define EMBERS_DEBUGBREAK() __debugbreak()
+#endif
+#endif
+
+// --- Types ---
 
 /// Signed integer with width of 8bit
 typedef int8_t i8;
@@ -123,7 +176,7 @@ static_assert(sizeof(f32) == 4, "f32 must be 4 bytes");
 static_assert(sizeof(f64) == 8, "f64 must be 8 bytes");
 
 /// Bool with width of 32bit
-typedef int b32;
+typedef int32_t b32;
 
 static_assert(sizeof(b8) == 1, "b8 must be 1 byte");
 static_assert(sizeof(b32) == 4, "b32 must be 4 bytes");

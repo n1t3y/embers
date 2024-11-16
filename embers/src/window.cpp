@@ -2,7 +2,9 @@
 
 #include <GLFW/glfw3.h>
 
-namespace embers::window {
+#include <embers/logger.hpp>
+
+namespace embers {
 
 Result<Window, Error> Window::create(u32 width, u32 height, const char *title) {
   GLFWwindow *glfw_window = nullptr;
@@ -56,4 +58,4 @@ Window::~Window() {
 
 u32 embers::window::Window::glfw_inits_ = 0;
 
-}  // namespace embers::window
+}  // namespace embers

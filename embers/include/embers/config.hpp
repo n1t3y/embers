@@ -2,7 +2,7 @@
 
 #include <fmt/base.h>
 
-#include "defines/types.hpp"
+#include "defines.hpp"
 
 namespace embers::config {
 
@@ -14,7 +14,7 @@ struct Version {
 
 static_assert(sizeof(Version) == 4, "Size of Version must be 32 bits");
 
-struct Config {
+struct Platform {
   const char *application_name = "Embers Application";
   struct {
     u32 width  = 1280;

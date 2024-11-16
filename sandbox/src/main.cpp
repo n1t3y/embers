@@ -1,3 +1,4 @@
+#include <embers/defines.hpp>
 #include <embers/logger.hpp>
 #include <embers/test.hpp>
 #include <iostream>

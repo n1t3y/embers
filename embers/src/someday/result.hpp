@@ -54,7 +54,7 @@ class Result {
     E    err_;
     Mono dummy;
     constexpr Container() : dummy() {};
-    EMBERS_INLINE ~Container() {}
+    EMBERS_ALWAYS_INLINE ~Container() {}
   };
 
  private:
@@ -136,7 +136,7 @@ class Result {
    * @param result The other `Result` object to move from.
    */
   constexpr Result(Result &&result);
-  EMBERS_INLINE ~Result();
+  EMBERS_ALWAYS_INLINE ~Result();
 
   // --- constructors ---
 
@@ -683,7 +683,7 @@ constexpr Result<T, E>::Result(Result &&result) {
 }
 
 template <typename T, typename E>
-EMBERS_INLINE Result<T, E>::~Result() {
+EMBERS_ALWAYS_INLINE Result<T, E>::~Result() {
   switch (state_) {
     case State::kOk:
       container_.ok_.T::~T();

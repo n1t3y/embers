@@ -1,5 +1,4 @@
-#include <embers/defines/types.hpp>
-#include <embers/defines/utils.hpp>
+#include <embers/defines.hpp>
 #include <embers/logger.hpp>
 
 const i32 LOG_LEVELS = 5;

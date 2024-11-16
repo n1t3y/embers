@@ -6,7 +6,7 @@
 
 #include "engine_config.hpp"
 #include "error_code.hpp"
-#include "result.hpp"
+#include "platform.hpp"
 #include "window.hpp"
 
 enum class PlatformError : embers::ErrorCodeType {

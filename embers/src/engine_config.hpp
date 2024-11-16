@@ -3,11 +3,12 @@
 #include <embers/config.hpp>
 
 namespace embers::config {
-struct EngineConfig {
+
+struct Engine {
   const char *name;
   Version     version;
 };
 
-extern EngineConfig engine_config;
+extern Engine engine;
 
 }  // namespace embers::config
