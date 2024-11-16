@@ -33,7 +33,11 @@ class fmt::formatter<embers::Error> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
   template <typename Context>
   constexpr auto format(Error const &error_code, Context &ctx) const {
-    return format_to(ctx.out(), "Error: {}", get_error_description(error_code));
+    return format_to(
+        ctx.out(),
+        "<Error: {}>",
+        get_error_description(error_code)
+    );
   }
 };
 
