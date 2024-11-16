@@ -56,6 +56,7 @@ constexpr const char *fmt::formatter<embers::Error>::get_error_description(
     case Error::kWindowCreateWindow:
       return "Unable to create a window";
     default:
+      break;
   }
   return "Error without description";
 }
