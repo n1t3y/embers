@@ -22,6 +22,7 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(external/glfw)
+find_package(Vulkan REQUIRED)
 
 add_library(
 	embers
@@ -39,6 +40,7 @@ target_include_directories(
 	embers
 	PRIVATE
 	$<TARGET_PROPERTY:glfw,INTERFACE_INCLUDE_DIRECTORIES>
+	$<TARGET_PROPERTY:Vulkan::Vulkan,INTERFACE_INCLUDE_DIRECTORIES>
 
 	PUBLIC
 	$<INSTALL_INTERFACE:include>
@@ -62,6 +64,7 @@ target_link_libraries(
 	PRIVATE
 	fmt::fmt
 	glfw
+	Vulkan::Vulkan
 )
 
 if(MSVC) 
