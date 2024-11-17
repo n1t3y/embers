@@ -32,6 +32,7 @@ add_library(
 	src/engine_config.cpp
 	src/window.cpp
 	src/platform.cpp
+	src/containers/debug_allocator.cpp
 )
 
 target_include_directories(
