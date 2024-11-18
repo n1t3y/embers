@@ -10,10 +10,14 @@ namespace embers {
 using ErrorType = u32;
 
 enum class Error : ErrorType {
-  kOk                 = 0x00000000,
-  kUnknown            = 0x00000001,
-  kWindowInitGLFW     = 0x00000010,
-  kWindowCreateWindow = 0x00000011,
+  kOk                                   = 0x00000000,
+  kUnknown                              = 0x00000001,
+  kWindowInitGLFW                       = 0x00000010,
+  kWindowCreateWindow                   = 0x00000011,
+  kVulkanInitVulkan                     = 0x00000020,
+  kVulkanEnumerateExtensions            = 0x00000021,
+  kVulkanGLFWGetRequiredExtensions      = 0x00000022,
+  kVulkanRequiredExtensionsArentPresent = 0x00000023,
 };
 
 template <typename E>

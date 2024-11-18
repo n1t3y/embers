@@ -4,6 +4,7 @@
 #include <embers/logger.hpp>
 
 #include "error_code.hpp"
+#include "vulkan.hpp"
 #include "window.hpp"
 
 namespace embers {
@@ -22,6 +23,7 @@ class Platform {
  private:
   static Error last_error_;
   Window       window_;
+  Vulkan       vulkan_;
 
  public:
   Platform() = delete;
@@ -49,7 +51,8 @@ inline Platform::Platform(const config::Platform &config)
           config.resolution.width,
           config.resolution.height,
           config.application_name
-      ) {
+      ),
+      vulkan_(config) {
   if (!(bool)window_) {
     auto err = to_error_code(Window::get_last_error());
     EMBERS_ERROR(
@@ -64,11 +67,12 @@ inline Platform::Platform(const config::Platform &config)
 }
 
 constexpr Platform::Platform(Platform &&platform)
-    : window_(std::move(platform.window_)) {}
+    : window_(std::move(platform.window_)),
+      vulkan_(std::move(platform.vulkan_)) {}
 
 constexpr Platform::operator bool() const {
   return (bool)window_ &&  //
-         true;
+         (bool)vulkan_;
 };
 
 inline Platform::~Platform() {
@@ -78,11 +82,13 @@ inline Platform::~Platform() {
 
 constexpr Platform &Platform::operator=(Platform &&rhs) {
   window_ = std::move(rhs.window_);
+  vulkan_ = std::move(rhs.vulkan_);
   return *this;
 };
 
 constexpr bool Platform::operator==(const Platform &rhs) const {
   return window_ == rhs.window_ &&  //
+         vulkan_ == rhs.vulkan_ &&  //
          true;
 }
 

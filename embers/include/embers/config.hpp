@@ -22,6 +22,16 @@ struct Platform {
   } resolution;
 
   Version version = {1, 0, 0};
+
+  struct {
+    const char *const *array  = nullptr;
+    u32                length = 0;
+  } required_extensions;
+
+  struct {
+    const char *const *array  = nullptr;
+    u32                length = 0;
+  } optional_extensions;
 };
 
 }  // namespace embers::config

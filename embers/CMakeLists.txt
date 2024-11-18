@@ -34,6 +34,7 @@ add_library(
 	src/window.cpp
 	src/platform.cpp
 	src/containers/debug_allocator.cpp
+	src/vulkan.cpp
 )
 
 target_include_directories(
