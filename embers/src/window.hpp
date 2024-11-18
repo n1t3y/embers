@@ -21,7 +21,6 @@ class Window {
   static u32   glfw_inits_;
   GLFWwindow  *window_;
 
-  constexpr Window(GLFWwindow *window) : window_(window) {}
   void destroy();
 
  public:

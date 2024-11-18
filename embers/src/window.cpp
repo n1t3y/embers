@@ -41,7 +41,7 @@ window_fail_window:
   }
 window_fail_init:
   glfw_error = glfwGetError(NULL);
-  EMBERS_ERROR(
+  EMBERS_FATAL(
       "Unable to init Embers window; glfwGetError: {}; Zombie window is going "
       "to be created",
       glfw_error
