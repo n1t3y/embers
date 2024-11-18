@@ -15,10 +15,11 @@ namespace embers {
 Vulkan::Vulkan(const config::Platform& config) {
   // (n1t3)todo: should be a map of string views
   Vector<VkExtensionProperties> existing_extension_properties = {};
-  Vector<const char*>           extensions                    = {};
-  VkApplicationInfo             app_info                      = {};
-  VkInstanceCreateInfo          instance_create_info          = {};
-  VkResult                      result                        = VK_SUCCESS;
+  // (n1t3)todo: consider using a set
+  Vector<const char*>  extensions           = {};
+  VkApplicationInfo    app_info             = {};
+  VkInstanceCreateInfo instance_create_info = {};
+  VkResult             result               = VK_SUCCESS;
 
   extensions.reserve(
       5 + config.required_extensions.length + config.optional_extensions.length
