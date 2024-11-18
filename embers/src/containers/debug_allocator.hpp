@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef EMBERS_CONFIG_DEBUG
+
 #include <embers/defines.hpp>
 #include <memory>
 
@@ -57,19 +59,9 @@ class with {
       debug_allocator_info[(int)tag].size -= sizeof(T) * n;
       return;
     }
-
-    template <typename U, typename... Args>
-    constexpr void construct(U *p, Args &&...args) {
-      allocator_traits::construct(inner, p, args...);
-      return;
-    }
-
-    template <typename U>
-    constexpr void destroy(U *p) noexcept {
-      allocator_traits::destroy(inner, p);
-      return;
-    }
   };
 };
 
 }  // namespace embers::containers
+
+#endif
