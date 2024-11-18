@@ -13,6 +13,7 @@ enum class DebugAllocatorTags {
 
 struct DebugAllocatorInfo {
   size_t size          = 0;
+  size_t max_size      = 0;
   u32    allocations   = 0;
   u32    deallocations = 0;
 };
@@ -44,6 +45,10 @@ class with {
       T *p = allocator_traits::allocate(inner, n);
       debug_allocator_info[(int)tag].allocations++;
       debug_allocator_info[(int)tag].size += sizeof(T) * n;
+      debug_allocator_info[(int)tag].max_size = std::max(
+          debug_allocator_info[(int)tag].max_size,
+          debug_allocator_info[(int)tag].size
+      );
       return p;
     }
     constexpr void deallocate(T *p, std::size_t n) noexcept {

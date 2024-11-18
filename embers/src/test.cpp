@@ -44,6 +44,10 @@ int embers::test::main() {
 
   EMBERS_DEBUG("Size: {}", embers::containers::debug_allocator_info[0].size);
   EMBERS_DEBUG(
+      "Max size: {}",
+      embers::containers::debug_allocator_info[0].max_size
+  );
+  EMBERS_DEBUG(
       "Allocations: {}",
       embers::containers::debug_allocator_info[0].allocations
   );
