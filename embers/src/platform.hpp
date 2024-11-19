@@ -5,6 +5,7 @@
 
 #include "error_code.hpp"
 #include "vulkan.hpp"
+#include "vulkan_debug_messenger.hpp"
 #include "window.hpp"
 
 namespace embers {
@@ -21,9 +22,10 @@ class Platform {
   };
 
  private:
-  static Error last_error_;
-  Window       window_;
-  Vulkan       vulkan_;
+  static Error         last_error_;
+  Window               window_;
+  Vulkan               vulkan_;
+  VulkanDebugMessenger debug_messenger_;
 
  public:
   Platform() = delete;
@@ -52,7 +54,8 @@ inline Platform::Platform(const config::Platform &config)
           config.resolution.height,
           config.application_name
       ),
-      vulkan_(config) {
+      vulkan_(config),
+      debug_messenger_(vulkan_) {
   if (!(bool)window_) {
     auto err = to_error_code(Window::get_last_error());
     EMBERS_ERROR(
@@ -68,7 +71,8 @@ inline Platform::Platform(const config::Platform &config)
 
 constexpr Platform::Platform(Platform &&platform)
     : window_(std::move(platform.window_)),
-      vulkan_(std::move(platform.vulkan_)) {}
+      vulkan_(std::move(platform.vulkan_)),
+      debug_messenger_(std::move(platform.debug_messenger_)) {}
 
 constexpr Platform::operator bool() const {
   return (bool)window_ &&  //
@@ -81,8 +85,9 @@ inline Platform::~Platform() {
 }
 
 constexpr Platform &Platform::operator=(Platform &&rhs) {
-  window_ = std::move(rhs.window_);
-  vulkan_ = std::move(rhs.vulkan_);
+  window_          = std::move(rhs.window_);
+  vulkan_          = std::move(rhs.vulkan_);
+  debug_messenger_ = std::move(debug_messenger_);
   return *this;
 };
 

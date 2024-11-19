@@ -10,68 +10,7 @@
 
 #include "containers/allocator.hpp"
 #include "engine_config.hpp"
-
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT             messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-    void*                                       pUserData
-) {
-#define EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT "{}"
-  switch (messageSeverity) {
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
-      EMBERS_DEBUG(
-          EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT,
-          pCallbackData->pMessage
-      );
-      break;
-    }
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: {
-      EMBERS_INFO(
-          EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT,
-          pCallbackData->pMessage
-      );
-      break;
-    }
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
-      EMBERS_WARN(
-          EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT,
-          pCallbackData->pMessage
-      );
-      break;
-    }
-    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-      EMBERS_ERROR(
-          EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT,
-          pCallbackData->pMessage
-      );
-      break;
-    }
-    default: {
-      break;
-    }
-  }
-
-  return VK_FALSE;
-#undef EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT
-}
-
-const static VkDebugUtilsMessengerCreateInfoEXT
-    debug_utils_messenger_create_info{
-        VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        nullptr,
-        {},
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-        VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
-        debug_callback,
-        nullptr
-    };
+#include "vulkan_debug_messenger.hpp"
 
 namespace embers {
 
@@ -89,8 +28,8 @@ Vulkan::Vulkan(const config::Platform& config) {
   const Vulkan::Vector<const char*> layers =
       get_layer_list(config);  // todo checks
 
-  VkResult                           result                       = VK_SUCCESS;
-  PFN_vkCreateDebugUtilsMessengerEXT create_debug_utils_messenger = nullptr;
+  VkResult result = VK_SUCCESS;
+
   EMBERS_DEBUG("Enabled extensions: ");
   for (const auto& i : extensions) {
     EMBERS_DEBUG("- {}", i);
@@ -113,8 +52,12 @@ Vulkan::Vulkan(const config::Platform& config) {
   instance_create_info.ppEnabledExtensionNames = extensions.data();
   instance_create_info.enabledLayerCount       = layers.size();
   instance_create_info.ppEnabledLayerNames     = layers.data();
-  instance_create_info.pNext =
-      (VkDebugUtilsMessengerCreateInfoEXT*)&debug_utils_messenger_create_info;
+
+#ifdef EMBERS_CONFIG_DEBUG
+  instance_create_info.pNext = &VulkanDebugMessenger::create_info;
+#else
+  instance_create_info.pNext = nullptr;
+#endif
 
   result = vkCreateInstance(
       &instance_create_info,
@@ -127,34 +70,15 @@ Vulkan::Vulkan(const config::Platform& config) {
         "Unable to init Vulkan: vkCreateInstance returned {}",
         (u32)result
     );
-    goto vulkan_create_error;
+    instance_ = nullptr;
+    return;
   }
   EMBERS_INFO("Vulkan initialized");
 
-  create_debug_utils_messenger = (PFN_vkCreateDebugUtilsMessengerEXT
-  )vkGetInstanceProcAddr(instance_, "vkCreateDebugUtilsMessengerEXT");
-  // todo do checks
-
-  create_debug_utils_messenger(
-      instance_,
-      &debug_utils_messenger_create_info,
-      nullptr,
-      &debug_utils_messenger_
-  );
-
-  return;
-
-vulkan_create_error:
-  instance_ = nullptr;
   return;
 }
 
 void Vulkan::destroy() {
-  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT
-  )vkGetInstanceProcAddr(instance_, "vkDestroyDebugUtilsMessengerEXT");
-  // todo checks
-  func(instance_, debug_utils_messenger_, nullptr);
-
   vkDestroyInstance(instance_, nullptr);  // (n1t3)todo allocator callbacks
   EMBERS_INFO("Vulkan terminated");
 

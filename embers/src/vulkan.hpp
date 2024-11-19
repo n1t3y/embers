@@ -8,10 +8,8 @@
 #include "error_code.hpp"
 
 struct VkInstance_T;
-struct VkDebugUtilsMessengerEXT_T;
 
-typedef VkInstance_T*               VkInstance;
-typedef VkDebugUtilsMessengerEXT_T* VkDebugUtilsMessengerEXT;
+typedef VkInstance_T* VkInstance;
 
 namespace embers {
 class Vulkan {
@@ -46,9 +44,8 @@ class Vulkan {
   };
 
  private:
-  static Error             last_error_;
-  VkInstance               instance_;
-  VkDebugUtilsMessengerEXT debug_utils_messenger_;  // todo conditional builds
+  static Error last_error_;
+  VkInstance   instance_;
 
   void destroy();
 
@@ -76,11 +73,8 @@ class Vulkan {
 
 namespace embers {
 
-constexpr Vulkan::Vulkan(Vulkan&& other)
-    : instance_(other.instance_),
-      debug_utils_messenger_(other.debug_utils_messenger_) {
-  other.instance_              = nullptr;
-  other.debug_utils_messenger_ = nullptr;
+constexpr Vulkan::Vulkan(Vulkan&& other) : instance_(other.instance_) {
+  other.instance_ = nullptr;
 }
 
 inline Vulkan::~Vulkan() {
