@@ -10,16 +10,16 @@ static const struct {
   fmt::string_view console;
   fmt::string_view file;
 } FORMATS[LOG_LEVELS] = {
-    {"\033[30;106m[Debug]\033[0m\033[36m @ {:48} > {}\033[0m\n",
-     "[Debug] @ {:48} > {}\n"},
-    {"\033[30;102m[Info]\033[0m \033[32m @ {:48} > {}\033[0m\n",
-     "[Info]  @ {:48} > {}\n"},
-    {"\033[30;103m[Warn]\033[0m \033[33m @ {:48} > {}\033[0m\n",
-     "[Warn]  @ {:48} > {}\n"},
-    {"\033[30;101m[Error]\033[0m\033[31m @ {:48} > {}\033[0m\n",
-     "[Error] @ {:48} > {}\n"},
-    {"\033[97;101m[╯°□°╯]\033[0m\033[31m @ {:48} > {}\033[0m\n",
-     "[Fatal] @ {:48} > {}\n"}
+    {"\033[30;106m[Debug]\033[0m\033[36m @ {:{}} > {}\033[0m\n",
+     "[Debug] @ {:{}} > {}\n"},
+    {"\033[30;102m[Info]\033[0m \033[32m @ {:{}} > {}\033[0m\n",
+     "[Info]  @ {:{}} > {}\n"},
+    {"\033[30;103m[Warn]\033[0m \033[33m @ {:{}} > {}\033[0m\n",
+     "[Warn]  @ {:{}} > {}\n"},
+    {"\033[30;101m[Error]\033[0m\033[31m @ {:{}} > {}\033[0m\n",
+     "[Error] @ {:{}} > {}\n"},
+    {"\033[97;101m[╯°□°╯]\033[0m\033[31m @ {:{}} > {}\033[0m\n",
+     "[Fatal] @ {:{}} > {}\n"}
 };
 
 static FILE *open_log_file();
@@ -74,21 +74,31 @@ void internal::vlog(
     fmt::string_view format,
     fmt::format_args args
 ) {
-  const auto message = fmt::vformat(format, args);
-  const auto formats = FORMATS[(int)level];
+  static size_t system_width = 8;
+  const auto    message      = fmt::vformat(format, args);
+  const auto    formats      = FORMATS[(int)level];
+
+  system_width = std::max(strlen(system), system_width);
 
   // Write to stdout/stderr
   fmt::print(
       level >= Level::kError ? stderr : stdout,
       fmt::runtime(formats.console),
       system,
+      system_width,
       message
   );
 
   // Write to file (if possible)
   static FILE *log_file = open_log_file();
   if (log_file != nullptr) {
-    fmt::print(log_file, fmt::runtime(formats.file), system, message);
+    fmt::print(
+        log_file,
+        fmt::runtime(formats.file),
+        system,
+        system_width,
+        message
+    );
   }
   return;
 }
