@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef EMBERS_CONFIG_DEBUG
+
 #include <vulkan/vulkan.h>
 
 #include "error_code.hpp"
@@ -19,8 +21,8 @@ class VulkanDebugMessenger {
 
  private:
   static Error             last_error_;
-  VkDebugUtilsMessengerEXT debug_utils_messenger_;  // todo conditional builds
-  VkInstance               instance_;               // doesn't own
+  VkDebugUtilsMessengerEXT debug_utils_messenger_;
+  VkInstance               instance_;  // doesn't own
 
   void destroy();
 
@@ -55,11 +57,24 @@ namespace embers {
 
 constexpr VulkanDebugMessenger::VulkanDebugMessenger(const Vulkan& vulkan)
     : debug_utils_messenger_(nullptr), instance_((VkInstance)vulkan) {
+  EMBERS_ASSERT(
+      (bool)vulkan,
+      "Vulkan instance must be valid in order to construct debug messenger"
+  );
+
   PFN_vkCreateDebugUtilsMessengerEXT create_debug_utils_messenger = nullptr;
 
   create_debug_utils_messenger = (PFN_vkCreateDebugUtilsMessengerEXT
   )vkGetInstanceProcAddr(instance_, "vkCreateDebugUtilsMessengerEXT");
-  // todo do checks
+
+  if (create_debug_utils_messenger == nullptr) {
+    debug_utils_messenger_ = nullptr;
+    EMBERS_FATAL(
+        "Unable to properly initialize Vulkan debug messenger; "
+        "vkCreateDebugUtilsMessengerEXT procedure was not found"
+    );
+    return;
+  }
 
   VkResult result = create_debug_utils_messenger(
       instance_,
@@ -67,7 +82,17 @@ constexpr VulkanDebugMessenger::VulkanDebugMessenger(const Vulkan& vulkan)
       nullptr,  // todo allocators
       &debug_utils_messenger_
   );
-  // todo check result
+
+  if (result != VK_SUCCESS) {
+    debug_utils_messenger_ = nullptr;
+    EMBERS_FATAL(
+        "Unable to properly initialize Vulkan debug messenger; "
+        "vkCreateDebugUtilsMessengerEXT failed with result {}",
+        (int)result
+    );
+    return;
+  }
+
   return;
 }
 
@@ -83,11 +108,19 @@ VulkanDebugMessenger::~VulkanDebugMessenger() {
   if (debug_utils_messenger_ == nullptr) {
     return;
   }
-  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT
+  auto destroy_debug_utils_messenger = (PFN_vkDestroyDebugUtilsMessengerEXT
   )vkGetInstanceProcAddr(instance_, "vkDestroyDebugUtilsMessengerEXT");
-  // todo checks
 
-  func(instance_, debug_utils_messenger_, nullptr);
+  if (destroy_debug_utils_messenger == nullptr) {
+    debug_utils_messenger_ = nullptr;
+    EMBERS_FATAL(
+        "Unable to properly destroy Vulkan debug messenger; "
+        "vkDestroyDebugUtilsMessengerEXT procedure was found"
+    );
+    return;
+  }
+
+  destroy_debug_utils_messenger(instance_, debug_utils_messenger_, nullptr);
 
   return;
 }
@@ -120,3 +153,5 @@ EMBERS_ALWAYS_INLINE VulkanDebugMessenger::Error
 }
 
 }  // namespace embers
+
+#endif
