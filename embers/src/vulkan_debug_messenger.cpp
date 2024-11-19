@@ -1,5 +1,7 @@
 #include "vulkan_debug_messenger.hpp"
 
+#ifdef EMBERS_CONFIG_DEBUG
+
 #include <embers/logger.hpp>
 
 #define EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT "{}"
@@ -69,3 +71,5 @@ VulkanDebugMessenger::Error VulkanDebugMessenger::last_error_ =
     VulkanDebugMessenger::Error::kOk;
 
 }  // namespace embers
+
+#endif

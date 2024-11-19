@@ -36,6 +36,8 @@ int embers::test::main() {
     return 1;
   }
 
+#ifdef EMBERS_CONFIG_DEBUG
+
   EMBERS_DEBUG("Size: {}", embers::containers::debug_allocator_info[0].size);
   EMBERS_DEBUG(
       "Max size: {}",
@@ -49,6 +51,8 @@ int embers::test::main() {
       "Deallocations: {}",
       embers::containers::debug_allocator_info[0].deallocations
   );
+
+#endif
 
   return 0;
 }

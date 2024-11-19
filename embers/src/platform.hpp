@@ -87,8 +87,14 @@ platform_create_error:
 
 constexpr Platform::Platform(Platform &&platform)
     : window_(std::move(platform.window_)),
-      vulkan_(std::move(platform.vulkan_)),
-      debug_messenger_(std::move(platform.debug_messenger_)) {}
+      vulkan_(std::move(platform.vulkan_))
+#ifdef EMBERS_CONFIG_DEBUG
+      ,
+      debug_messenger_(std::move(platform.debug_messenger_))
+#endif
+
+{
+}
 
 constexpr Platform::operator bool() const {
   return (bool)window_ &&  //
@@ -101,9 +107,11 @@ inline Platform::~Platform() {
 }
 
 constexpr Platform &Platform::operator=(Platform &&rhs) {
-  window_          = std::move(rhs.window_);
-  vulkan_          = std::move(rhs.vulkan_);
+  window_ = std::move(rhs.window_);
+  vulkan_ = std::move(rhs.vulkan_);
+#ifdef EMBERS_CONFIG_DEBUG
   debug_messenger_ = std::move(debug_messenger_);
+#endif
   return *this;
 };
 
