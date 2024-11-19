@@ -65,4 +65,7 @@ VkDebugUtilsMessengerCreateInfoEXT VulkanDebugMessenger::create_info = {
     nullptr
 };
 
+VulkanDebugMessenger::Error VulkanDebugMessenger::last_error_ =
+    VulkanDebugMessenger::Error::kOk;
+
 }  // namespace embers

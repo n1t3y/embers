@@ -57,10 +57,14 @@ namespace embers {
 
 constexpr VulkanDebugMessenger::VulkanDebugMessenger(const Vulkan& vulkan)
     : debug_utils_messenger_(nullptr), instance_((VkInstance)vulkan) {
-  EMBERS_ASSERT(
-      (bool)vulkan,
-      "Vulkan instance must be valid in order to construct debug messenger"
-  );
+  if (!(bool)vulkan) {
+    EMBERS_FATAL(
+        "Can't init debug messenger; Vulkan instance must be valid in order to "
+        "construct debug messenger"
+    );
+    debug_utils_messenger_ = nullptr;
+    return;
+  }
 
   PFN_vkCreateDebugUtilsMessengerEXT create_debug_utils_messenger = nullptr;
 

@@ -22,10 +22,12 @@ class Platform {
   };
 
  private:
-  static Error         last_error_;
-  Window               window_;
-  Vulkan               vulkan_;
+  static Error last_error_;
+  Window       window_;
+  Vulkan       vulkan_;
+#ifdef EMBERS_CONFIG_DEBUG
   VulkanDebugMessenger debug_messenger_;
+#endif
 
  public:
   Platform() = delete;
@@ -54,18 +56,32 @@ inline Platform::Platform(const config::Platform &config)
           config.resolution.height,
           config.application_name
       ),
-      vulkan_(config),
-      debug_messenger_(vulkan_) {
-  if (!(bool)window_) {
-    auto err = to_error_code(Window::get_last_error());
-    EMBERS_ERROR(
-        "Unable to init embers platform: {}; Zombie platform is going to be "
-        "initialized",
-        err
-    );
-  }
+      vulkan_(config)
+#ifdef EMBERS_CONFIG_DEBUG
+      ,
+      debug_messenger_(vulkan_)
+#endif
+{
+  embers::Error err = embers::Error::kOk;
 
+  if (!(bool)window_) {
+    err = to_error_code(Window::get_last_error());
+    goto platform_create_error;
+  }
+  if (!(bool)vulkan_) {
+    auto err = to_error_code(Vulkan::get_last_error());
+    goto platform_create_error;
+  }
+#ifdef EMBERS_CONFIG_DEBUG
+  if (!(bool)debug_messenger_) {
+    auto err = to_error_code(VulkanDebugMessenger::get_last_error());
+    // goto platform_create_error; // non critical, can continue
+  }
+#endif
   EMBERS_INFO("Platform initialized");
+  return;
+platform_create_error:
+  EMBERS_FATAL("Unable to init embers platform: {}", err);
   return;
 }
 
