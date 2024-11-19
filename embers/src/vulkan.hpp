@@ -59,6 +59,9 @@ class Vulkan {
   constexpr bool                    operator==(const Vulkan& rhs) const;
   constexpr bool                    operator!=(const Vulkan& rhs) const;
   EMBERS_ALWAYS_INLINE static Error get_last_error();
+
+ private:
+  static Vector<const char*> get_extension_list(const config::Platform& config);
 };
 
 }  // namespace embers
