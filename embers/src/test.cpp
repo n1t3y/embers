@@ -1,5 +1,6 @@
 #include <fmt/format.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 #include <embers/logger.hpp>
 #include <embers/test.hpp>
@@ -36,21 +37,78 @@ int embers::test::main() {
     return 1;
   }
 
-#ifdef EMBERS_CONFIG_DEBUG
+  uint32_t deviceCount = 0;
+  vkEnumeratePhysicalDevices(
+      (VkInstance)platform.vulkan_,
+      &deviceCount,
+      nullptr
+  );
+  std::vector<VkPhysicalDevice> devices(deviceCount);
+  vkEnumeratePhysicalDevices(
+      (VkInstance)platform.vulkan_,
+      &deviceCount,
+      devices.data()
+  );
 
-  EMBERS_DEBUG("Size: {}", embers::containers::debug_allocator_info[0].size);
-  EMBERS_DEBUG(
-      "Max size: {}",
-      embers::containers::debug_allocator_info[0].max_size
+  EMBERS_DEBUG("Devices:");
+  for (const VkPhysicalDevice &i : devices) {
+    VkPhysicalDeviceProperties deviceProperties;
+    VkPhysicalDeviceFeatures   deviceFeatures;
+    vkGetPhysicalDeviceProperties(i, &deviceProperties);
+    vkGetPhysicalDeviceFeatures(i, &deviceFeatures);
+
+    EMBERS_DEBUG(
+        "- {}: {} ({}) {}",
+        deviceProperties.deviceID,
+        deviceProperties.deviceName,
+        (int)deviceProperties.deviceType,
+        deviceFeatures.geometryShader
+    );
+  }
+
+  VkPhysicalDevice device = devices.front();
+
+  u32 queueFamilyCount = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+  std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+  vkGetPhysicalDeviceQueueFamilyProperties(
+      device,
+      &queueFamilyCount,
+      queueFamilies.data()
   );
+
+  // VK_QUEUE_GRAPHICS_BIT = 0x00000001,                 1
+  // VK_QUEUE_COMPUTE_BIT = 0x00000002,                 10
+  // VK_QUEUE_TRANSFER_BIT = 0x00000004,               100
+  // VK_QUEUE_SPARSE_BINDING_BIT = 0x00000008,        1000
+  // VK_QUEUE_PROTECTED_BIT = 0x00000010,            10000
+  // VK_QUEUE_VIDEO_DECODE_BIT_KHR = 0x00000020,    100000
+  // VK_QUEUE_VIDEO_ENCODE_BIT_KHR = 0x00000040,   1000000
+  // VK_QUEUE_OPTICAL_FLOW_BIT_NV = 0x00000100,  100000000
+
   EMBERS_DEBUG(
-      "Allocations: {}",
-      embers::containers::debug_allocator_info[0].allocations
+      "Flags: OPTICAL_FLOW | ??? | VIDEO_ENCODE | VIDEO_DECODE | PROTECTED | "
+      "SPARSE_BINDING | TRANSFER | COMPUTE | GRAPHICS "
   );
-  EMBERS_DEBUG(
-      "Deallocations: {}",
-      embers::containers::debug_allocator_info[0].deallocations
-  );
+
+  EMBERS_DEBUG("Queue families for first device:");
+  EMBERS_DEBUG("                    O?EDPSTCG");
+  for (const auto &queueFamily : queueFamilies) {
+    EMBERS_DEBUG(
+        "- Count: {:2}; Flags: {:0>9b}; Timestamp Valid Bits: {}; Min Image "
+        "Transfer Granularity: {}x{}x{}",
+        queueFamily.queueCount,
+        queueFamily.queueFlags,
+        queueFamily.timestampValidBits,
+        queueFamily.minImageTransferGranularity.width,
+        queueFamily.minImageTransferGranularity.height,
+        queueFamily.minImageTransferGranularity.depth
+    );
+  }
+
+#ifdef EMBERS_CONFIG_DEBUG
+  EMBERS_DEBUG("Vulkan: {}", embers::containers::debug_allocator_info[0]);
+  EMBERS_DEBUG("Logger: {}", embers::containers::debug_allocator_info[1]);
 
 #endif
 

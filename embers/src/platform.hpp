@@ -22,6 +22,7 @@ class Platform {
   };
 
  private:
+ public:  // todo remove public
   static Error last_error_;
   Window       window_;
   Vulkan       vulkan_;

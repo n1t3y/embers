@@ -1,5 +1,42 @@
 #include <embers/defines.hpp>
 #include <embers/logger.hpp>
+#include <iterator>
+
+#include "containers/allocator.hpp"
+#include "containers/debug_allocator.hpp"
+
+#ifdef EMBERS_CONFIG_DEBUG
+template <typename T>
+using Allocator = embers::containers::with<
+    embers::containers::DefaultAllocator,
+    embers::containers::DebugAllocatorTags::kLogger>::DebugAllocator<T>;
+
+#else
+template <typename T>
+using Allocator = embers::containers::DefaultAllocator<T>;
+#endif
+
+using String = std::basic_string<char, std::char_traits<char>, Allocator<char>>;
+
+using MemoryBuffer =
+    fmt::basic_memory_buffer<char, fmt::inline_buffer_size, Allocator<char>>;
+
+static Allocator<char> allocator = {};
+
+String vformat(
+    Allocator<char> alloc, fmt::string_view format_str, fmt::format_args args
+) {
+  auto buf = MemoryBuffer(alloc);
+  fmt::vformat_to(std::back_inserter(buf), format_str, args);
+  return String(buf.data(), buf.size(), alloc);
+}
+
+template <typename... Args>
+inline String format(
+    Allocator<char> alloc, fmt::string_view format_str, const Args &...args
+) {
+  return vformat(alloc, format_str, fmt::make_format_args(args...));
+}
 
 namespace embers::logger {
 
@@ -45,10 +82,10 @@ static FILE *open_log_file() {
     return log_file;
   }
   // unable to open file: log the error into console
-  const u32   error_string_maxlen               = 128;
-  char        error_string[error_string_maxlen] = {};
-  errno_t     errno_string = strerror_s(error_string, error_string_maxlen, err);
-  std::string formatted_error;
+  const u32 error_string_maxlen               = 128;
+  char      error_string[error_string_maxlen] = {};
+  errno_t   errno_string = strerror_s(error_string, error_string_maxlen, err);
+  String    formatted_error;
 
   fmt::print(
       stderr,
@@ -75,7 +112,7 @@ void internal::vlog(
     fmt::format_args args
 ) {
   static size_t system_width = 8;
-  const auto    message      = fmt::vformat(format, args);
+  const String  message      = vformat(allocator, format, args);
   const auto    formats      = FORMATS[(int)level];
 
   system_width = std::max(strlen(system), system_width);
