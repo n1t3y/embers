@@ -17,7 +17,9 @@ enum class Error : ErrorType {
   kVulkanInitVulkan                     = 0x00000020,
   kVulkanEnumerateExtensions            = 0x00000021,
   kVulkanGLFWGetRequiredExtensions      = 0x00000022,
-  kVulkanRequiredExtensionsArentPresent = 0x00000023,
+  kVulkanRequiredExtensionsArentPresent = 0x00000024,
+  kVulkanEnumerateLayers                = 0x00000025,
+  kVulkanRequiredLayersArentPresent     = 0x00000026,
 };
 
 template <typename E>

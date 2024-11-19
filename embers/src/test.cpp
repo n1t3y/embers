@@ -19,12 +19,6 @@ using embers::containers::TestAllocator;
 
 using namespace embers;
 
-template <typename T>
-using TestAlloc = containers::with<          //
-    std::allocator,                          //
-    containers::DebugAllocatorTags::kVulkan  //
-    >::DebugAllocator<T>;                    //
-
 int embers::test::main() {
   EMBERS_INFO(
       "Main called: {} ver. {} built @ " __DATE__ " " __TIME__,

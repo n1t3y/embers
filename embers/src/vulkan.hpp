@@ -8,8 +8,10 @@
 #include "error_code.hpp"
 
 struct VkInstance_T;
+struct VkDebugUtilsMessengerEXT_T;
 
-typedef VkInstance_T* VkInstance;
+typedef VkInstance_T*               VkInstance;
+typedef VkDebugUtilsMessengerEXT_T* VkDebugUtilsMessengerEXT;
 
 namespace embers {
 class Vulkan {
@@ -37,11 +39,16 @@ class Vulkan {
         (ErrorType)embers::Error::kVulkanGLFWGetRequiredExtensions,
     kRequiredExtensionsArentPresent =
         (ErrorType)embers::Error::kVulkanRequiredExtensionsArentPresent,
+
+    kEnumerateLayers = (ErrorType)embers::Error::kVulkanEnumerateLayers,
+    kRequiredLayersArentPresent =
+        (ErrorType)embers::Error::kVulkanRequiredLayersArentPresent,
   };
 
  private:
-  static Error last_error_;
-  VkInstance   instance_;
+  static Error             last_error_;
+  VkInstance               instance_;
+  VkDebugUtilsMessengerEXT debug_utils_messenger_;  // todo conditional builds
 
   void destroy();
 
@@ -62,14 +69,18 @@ class Vulkan {
 
  private:
   static Vector<const char*> get_extension_list(const config::Platform& config);
+  static Vector<const char*> get_layer_list(const config::Platform& config);
 };
 
 }  // namespace embers
 
 namespace embers {
 
-constexpr Vulkan::Vulkan(Vulkan&& other) : instance_(other.instance_) {
-  other.instance_ = nullptr;
+constexpr Vulkan::Vulkan(Vulkan&& other)
+    : instance_(other.instance_),
+      debug_utils_messenger_(other.debug_utils_messenger_) {
+  other.instance_              = nullptr;
+  other.debug_utils_messenger_ = nullptr;
 }
 
 inline Vulkan::~Vulkan() {
