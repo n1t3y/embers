@@ -5,15 +5,18 @@
 #include <embers/logger.hpp>
 #include <embers/test.hpp>
 #include <iostream>
+#include <unordered_set>
 #include <vector>
 
+#include "GLFW/glfw3.h"
 #include "containers/allocator.hpp"
 #include "containers/debug_allocator.hpp"
 #include "ecs/entity.hpp"
 #include "engine_config.hpp"
 #include "error_code.hpp"
 #include "platform.hpp"
-#include "vulkan.hpp"
+#include "vulkan/common.hpp"
+#include "vulkan/instance.hpp"
 #include "window.hpp"
 
 using embers::containers::TestAllocator;
@@ -32,41 +35,24 @@ int embers::test::main() {
   auto platform = embers::Platform(config);
 
   if (!(bool)platform) {
-    auto err = embers::to_error_code(embers::Platform::get_last_error());
+    auto err = embers::Platform::get_last_error();
     EMBERS_DEBUG("{}", err);
     return 1;
   }
 
-  uint32_t deviceCount = 0;
-  vkEnumeratePhysicalDevices(
-      (VkInstance)platform.vulkan_,
-      &deviceCount,
-      nullptr
-  );
-  std::vector<VkPhysicalDevice> devices(deviceCount);
-  vkEnumeratePhysicalDevices(
-      (VkInstance)platform.vulkan_,
-      &deviceCount,
-      devices.data()
-  );
+  const auto       devices = platform.vulkan_.get_device_list();
+  VkPhysicalDevice device  = platform.vulkan_.pick_device(devices);
 
-  EMBERS_DEBUG("Devices:");
-  for (const VkPhysicalDevice &i : devices) {
-    VkPhysicalDeviceProperties deviceProperties;
-    VkPhysicalDeviceFeatures   deviceFeatures;
-    vkGetPhysicalDeviceProperties(i, &deviceProperties);
-    vkGetPhysicalDeviceFeatures(i, &deviceFeatures);
-
-    EMBERS_DEBUG(
-        "- {}: {} ({}) {}",
-        deviceProperties.deviceID,
-        deviceProperties.deviceName,
-        (int)deviceProperties.deviceType,
-        deviceFeatures.geometryShader
-    );
+  VkSurfaceKHR surface;
+  VkResult     err = glfwCreateWindowSurface(
+      (VkInstance)platform.vulkan_,
+      (GLFWwindow*)platform.window_,
+      NULL,
+      &surface
+  );
+  if (err != VK_SUCCESS) {
+    EMBERS_ERROR("Stuff happened, bad stuff: {}", (int)err);
   }
-
-  VkPhysicalDevice device = devices.front();
 
   u32 queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
@@ -77,23 +63,24 @@ int embers::test::main() {
       queueFamilies.data()
   );
 
-  // VK_QUEUE_GRAPHICS_BIT = 0x00000001,                 1
-  // VK_QUEUE_COMPUTE_BIT = 0x00000002,                 10
-  // VK_QUEUE_TRANSFER_BIT = 0x00000004,               100
-  // VK_QUEUE_SPARSE_BINDING_BIT = 0x00000008,        1000
-  // VK_QUEUE_PROTECTED_BIT = 0x00000010,            10000
-  // VK_QUEUE_VIDEO_DECODE_BIT_KHR = 0x00000020,    100000
-  // VK_QUEUE_VIDEO_ENCODE_BIT_KHR = 0x00000040,   1000000
-  // VK_QUEUE_OPTICAL_FLOW_BIT_NV = 0x00000100,  100000000
-
   EMBERS_DEBUG(
       "Flags: OPTICAL_FLOW | ??? | VIDEO_ENCODE | VIDEO_DECODE | PROTECTED | "
       "SPARSE_BINDING | TRANSFER | COMPUTE | GRAPHICS "
   );
 
+  struct {
+    u32 graphics;
+    u32 present;
+    struct {
+      bool graphics : 1;
+      bool present  : 1;
+    } flags = {false, false};
+  } indices;
+
   EMBERS_DEBUG("Queue families for first device:");
   EMBERS_DEBUG("                    O?EDPSTCG");
-  for (const auto &queueFamily : queueFamilies) {
+  u32 i = 0;
+  for (const auto& queueFamily : queueFamilies) {
     EMBERS_DEBUG(
         "- Count: {:2}; Flags: {:0>9b}; Timestamp Valid Bits: {}; Min Image "
         "Transfer Granularity: {}x{}x{}",
@@ -104,13 +91,84 @@ int embers::test::main() {
         queueFamily.minImageTransferGranularity.height,
         queueFamily.minImageTransferGranularity.depth
     );
+    if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+      indices.graphics       = i;
+      indices.flags.graphics = true;
+    }
+    VkBool32 presentSupport = false;
+    vkGetPhysicalDeviceSurfaceSupportKHR(  //
+        device,
+        i,
+        surface,
+        &presentSupport
+    );
+    if (presentSupport) {
+      indices.present       = i;
+      indices.flags.present = true;
+    }
+    i++;
   }
+  EMBERS_DEBUG("Index graphics: {}", indices.graphics);
+  EMBERS_DEBUG("Index present: {}", indices.present);
+
+  // got the thing
+
+  std::vector<VkDeviceQueueCreateInfo> device_queue_create_infos;
+  device_queue_create_infos.reserve(2);
+
+  std::unordered_set<u32> queue_families = {indices.graphics, indices.present};
+  float                   queue_priority = 1.f;
+
+  for (const u32 i : queue_families) {
+    VkDeviceQueueCreateInfo device_queue_create_info = {};
+    device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    device_queue_create_info.queueFamilyIndex = i;
+    device_queue_create_info.queueCount       = 1;
+    device_queue_create_info.pQueuePriorities = &queue_priority;
+    device_queue_create_infos.push_back(device_queue_create_info);
+  }
+
+  VkDeviceCreateInfo device_create_info{};
+  device_create_info.sType             = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  device_create_info.pQueueCreateInfos = device_queue_create_infos.data();
+  device_create_info.queueCreateInfoCount = device_queue_create_infos.size();
+
+  VkPhysicalDeviceFeatures device_features{};  // todo
+
+  device_create_info.pEnabledFeatures = &device_features;
+
+  device_create_info.enabledExtensionCount   = 0;
+  device_create_info.ppEnabledExtensionNames = nullptr;
+
+#ifdef EMBERS_CONFIG_DEBUG
+  device_create_info.enabledLayerCount =
+      sizeof(vulkan::debug_layers) / sizeof(const char*);
+  device_create_info.ppEnabledLayerNames = vulkan::debug_layers;
+#else
+  device_create_info.enabledLayerCount   = 0;
+  device_create_info.ppEnabledLayerNames = nullptr;
+#endif
+
+  VkDevice virtual_device;
+  VkResult resu =
+      vkCreateDevice(device, &device_create_info, nullptr, &virtual_device);
+
+  EMBERS_DEBUG("Device: {} ({})", fmt::ptr(virtual_device), (int)resu);
+
+  VkQueue graphics;
+  VkQueue present;
+
+  vkGetDeviceQueue(virtual_device, indices.graphics, 0, &graphics);
+  vkGetDeviceQueue(virtual_device, indices.present, 0, &present);
 
 #ifdef EMBERS_CONFIG_DEBUG
   EMBERS_DEBUG("Vulkan: {}", embers::containers::debug_allocator_info[0]);
   EMBERS_DEBUG("Logger: {}", embers::containers::debug_allocator_info[1]);
 
 #endif
+
+  vkDestroySurfaceKHR((VkInstance)platform.vulkan_, surface, nullptr);
+  vkDestroyDevice(virtual_device, nullptr);
 
   return 0;
 }

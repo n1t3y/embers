@@ -14,7 +14,7 @@ Window::Window(u32 width, u32 height, const char *title) {
   glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_PREFER_LIBDECOR);
   if (glfw_inits_ == 0) {
     if (glfwInit() != GLFW_TRUE) {
-      error = Error::kInitGLFW;
+      error = Error::kWindowInitGLFW;
       goto window_fail_init;
     }
     glfw_inits_++;
@@ -26,7 +26,7 @@ Window::Window(u32 width, u32 height, const char *title) {
   glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
   window_ = glfwCreateWindow(width, height, title, NULL, NULL);
   if (window_ == NULL) {
-    error = Error::kCreateWindow;
+    error = Error::kWindowCreateWindow;
     goto window_fail_window;
   }
   EMBERS_DEBUG("Glfw window created: {}", fmt::ptr(window_));
@@ -64,7 +64,7 @@ void Window::destroy() {
   return;
 }
 
-u32           Window::glfw_inits_ = 0;
-Window::Error Window::last_error_ = Window::Error::kUnknown;
+u32   Window::glfw_inits_ = 0;
+Error Window::last_error_ = Error::kUnknown;
 
 }  // namespace embers

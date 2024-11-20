@@ -1,4 +1,4 @@
-#include "vulkan_debug_messenger.hpp"
+#include "debug_messenger.hpp"
 
 #ifdef EMBERS_CONFIG_DEBUG
 
@@ -6,9 +6,9 @@
 
 #define EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT "{}"
 
-namespace embers {
+namespace embers::vulkan {
 
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessenger::debug_callback(
+VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessenger::debug_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT      message_severity,
     VkDebugUtilsMessageTypeFlagsEXT             message_type,
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
@@ -51,7 +51,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugMessenger::debug_callback(
   return VK_FALSE;
 }
 
-VkDebugUtilsMessengerCreateInfoEXT VulkanDebugMessenger::create_info = {
+VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::create_info = {
     VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
     nullptr,
     {},
@@ -67,9 +67,8 @@ VkDebugUtilsMessengerCreateInfoEXT VulkanDebugMessenger::create_info = {
     nullptr
 };
 
-VulkanDebugMessenger::Error VulkanDebugMessenger::last_error_ =
-    VulkanDebugMessenger::Error::kOk;
+Error DebugMessenger::last_error_ = Error::kOk;
 
-}  // namespace embers
+}  // namespace embers::vulkan
 
 #endif

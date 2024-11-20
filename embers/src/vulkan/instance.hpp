@@ -1,0 +1,94 @@
+#pragma once
+
+#include <embers/config.hpp>
+#include <vector>
+
+#include "../containers/allocator.hpp"
+#include "../containers/debug_allocator.hpp"
+#include "../error_code.hpp"
+
+struct VkInstance_T;
+struct VkPhysicalDevice_T;
+
+typedef VkInstance_T*       VkInstance;
+typedef VkPhysicalDevice_T* VkPhysicalDevice;
+
+namespace embers::vulkan {
+
+class Instance {
+#ifdef EMBERS_CONFIG_DEBUG
+  template <typename T>
+  using Allocator = containers::with<
+      containers::DefaultAllocator,
+      containers::DebugAllocatorTags::kVulkan>::DebugAllocator<T>;
+
+#else
+  template <typename T>
+  using Allocator = embers::containers::DefaultAllocator<T>;
+#endif
+
+  template <typename T>
+  using Vector = std::vector<T, Allocator<T>>;
+
+ private:
+  static Error last_error_;
+  VkInstance   instance_;
+
+  void destroy();
+
+ public:
+  Instance() = delete;
+  Instance(const config::Platform& config);
+  Instance(const Instance&) = delete;
+  constexpr Instance(Instance&& other);
+  inline ~Instance();
+
+  constexpr explicit                operator bool() const;
+  constexpr explicit                operator VkInstance() const;
+  Instance&                         operator=(const Instance& rhs) = delete;
+  constexpr Instance&               operator=(Instance&& rhs);
+  constexpr bool                    operator==(const Instance& rhs) const;
+  constexpr bool                    operator!=(const Instance& rhs) const;
+  EMBERS_ALWAYS_INLINE static Error get_last_error();
+
+ private:
+ public:  // todo
+  static Vector<const char*> get_extension_list(const config::Platform& config);
+  static Vector<const char*> get_layer_list(const config::Platform& config);
+  Vector<VkPhysicalDevice>   get_device_list();
+  static VkPhysicalDevice pick_device(const Vector<VkPhysicalDevice>& devices);
+};
+
+}  // namespace embers::vulkan
+
+namespace embers::vulkan {
+
+constexpr Instance::Instance(Instance&& other) : instance_(other.instance_) {
+  other.instance_ = nullptr;
+}
+
+inline Instance::~Instance() {
+  if (instance_ == nullptr) {
+    return;
+  }
+  destroy();
+  return;
+}
+
+constexpr Instance::operator bool() const { return instance_ != nullptr; }
+constexpr Instance::operator VkInstance() const { return instance_; }
+
+constexpr Instance& Instance::operator=(Instance&& rhs) {
+  instance_     = rhs.instance_;
+  rhs.instance_ = nullptr;
+  return *this;
+}
+constexpr bool Instance::operator==(const Instance& rhs) const {
+  return instance_ == rhs.instance_;
+}
+constexpr bool Instance::operator!=(const Instance& rhs) const {
+  return !operator==(rhs);
+}
+EMBERS_ALWAYS_INLINE Error Instance::get_last_error() { return last_error_; }
+
+}  // namespace embers::vulkan

@@ -4,30 +4,19 @@
 #include <embers/logger.hpp>
 
 #include "error_code.hpp"
-#include "vulkan.hpp"
-#include "vulkan_debug_messenger.hpp"
+#include "vulkan/debug_messenger.hpp"
+#include "vulkan/vulkan.hpp"
 #include "window.hpp"
 
 namespace embers {
 
 class Platform {
- public:
-  enum class Error : ErrorType {
-    kOk      = (ErrorType)embers::Error::kOk,
-    kUnknown = (ErrorType)embers::Error::kUnknown,
-    // propagate from window::Window
-    kInitGLFW = (ErrorType)embers::Error::kWindowInitGLFW,
-    // propagate from window::Window
-    kCreateWindow = (ErrorType)embers::Error::kWindowCreateWindow,
-  };
-
- private:
  public:  // todo remove public
-  static Error last_error_;
-  Window       window_;
-  Vulkan       vulkan_;
+  static Error     last_error_;
+  Window           window_;
+  vulkan::Instance vulkan_;
 #ifdef EMBERS_CONFIG_DEBUG
-  VulkanDebugMessenger debug_messenger_;
+  vulkan::DebugMessenger debug_messenger_;
 #endif
 
  public:
@@ -63,26 +52,21 @@ inline Platform::Platform(const config::Platform &config)
       debug_messenger_(vulkan_)
 #endif
 {
-  embers::Error err = embers::Error::kOk;
+  // embers::Error err = embers::Error::kOk;
 
   if (!(bool)window_) {
-    err = to_error_code(Window::get_last_error());
+    last_error_ = Window::get_last_error();
     goto platform_create_error;
   }
   if (!(bool)vulkan_) {
-    auto err = to_error_code(Vulkan::get_last_error());
+    last_error_ = vulkan::Instance::get_last_error();
     goto platform_create_error;
   }
-#ifdef EMBERS_CONFIG_DEBUG
-  if (!(bool)debug_messenger_) {
-    auto err = to_error_code(VulkanDebugMessenger::get_last_error());
-    // goto platform_create_error; // non critical, can continue
-  }
-#endif
+
   EMBERS_INFO("Platform initialized");
   return;
 platform_create_error:
-  EMBERS_FATAL("Unable to init embers platform: {}", err);
+  EMBERS_FATAL("Unable to init embers platform: {}", last_error_);
   return;
 }
 
@@ -126,8 +110,6 @@ constexpr bool Platform::operator!=(const Platform &rhs) const {
   return !operator==(rhs);
 }
 
-EMBERS_ALWAYS_INLINE Platform::Error Platform::get_last_error() {
-  return last_error_;
-}
+EMBERS_ALWAYS_INLINE Error Platform::get_last_error() { return last_error_; }
 
 }  // namespace embers

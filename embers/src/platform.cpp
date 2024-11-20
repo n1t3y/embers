@@ -2,6 +2,6 @@
 
 namespace embers {
 
-Platform::Error Platform::last_error_ = Platform::Error::kUnknown;
+Error Platform::last_error_ = Error::kUnknown;
 
 }

@@ -4,22 +4,15 @@
 
 #include <vulkan/vulkan.h>
 
-#include "error_code.hpp"
-#include "vulkan.hpp"
+#include "../error_code.hpp"
+#include "instance.hpp"
 
 struct VkDebugUtilsMessengerEXT_T;
 typedef VkDebugUtilsMessengerEXT_T* VkDebugUtilsMessengerEXT;
 
-namespace embers {
+namespace embers::vulkan {
 
-class VulkanDebugMessenger {
- public:
-  enum class Error : ErrorType {
-    kOk      = (ErrorType)embers::Error::kOk,
-    kUnknown = (ErrorType)embers::Error::kUnknown
-  };
-
- private:
+class DebugMessenger {
   static Error             last_error_;
   VkDebugUtilsMessengerEXT debug_utils_messenger_;
   VkInstance               instance_;  // doesn't own
@@ -34,28 +27,28 @@ class VulkanDebugMessenger {
   );
 
  public:
-  VulkanDebugMessenger() = delete;
-  constexpr VulkanDebugMessenger(const Vulkan& vulkan);
-  VulkanDebugMessenger(const VulkanDebugMessenger& other) = delete;
-  constexpr VulkanDebugMessenger(VulkanDebugMessenger&& other);
-  inline ~VulkanDebugMessenger();
+  DebugMessenger() = delete;
+  constexpr DebugMessenger(const Instance& vulkan);
+  DebugMessenger(const DebugMessenger& other) = delete;
+  constexpr DebugMessenger(DebugMessenger&& other);
+  inline ~DebugMessenger();
 
-  constexpr explicit    operator bool() const;
-  constexpr explicit    operator VkDebugUtilsMessengerEXT() const;
-  VulkanDebugMessenger& operator=(const VulkanDebugMessenger& rhs) = delete;
-  constexpr VulkanDebugMessenger& operator=(VulkanDebugMessenger&& rhs);
-  constexpr bool operator==(const VulkanDebugMessenger& rhs) const;
-  constexpr bool operator!=(const VulkanDebugMessenger& rhs) const;
+  constexpr explicit        operator bool() const;
+  constexpr explicit        operator VkDebugUtilsMessengerEXT() const;
+  DebugMessenger&           operator=(const DebugMessenger& rhs) = delete;
+  constexpr DebugMessenger& operator=(DebugMessenger&& rhs);
+  constexpr bool            operator==(const DebugMessenger& rhs) const;
+  constexpr bool            operator!=(const DebugMessenger& rhs) const;
   EMBERS_ALWAYS_INLINE static Error get_last_error();
 
   static VkDebugUtilsMessengerCreateInfoEXT create_info;
 };
 
-}  // namespace embers
+}  // namespace embers::vulkan
 
-namespace embers {
+namespace embers::vulkan {
 
-constexpr VulkanDebugMessenger::VulkanDebugMessenger(const Vulkan& vulkan)
+constexpr DebugMessenger::DebugMessenger(const Instance& vulkan)
     : debug_utils_messenger_(nullptr), instance_((VkInstance)vulkan) {
   if (!(bool)vulkan) {
     EMBERS_FATAL(
@@ -100,62 +93,54 @@ constexpr VulkanDebugMessenger::VulkanDebugMessenger(const Vulkan& vulkan)
   return;
 }
 
-constexpr VulkanDebugMessenger::VulkanDebugMessenger(
-    VulkanDebugMessenger&& other
-)
+constexpr DebugMessenger::DebugMessenger(DebugMessenger&& other)
     : debug_utils_messenger_(other.debug_utils_messenger_),
       instance_(other.instance_) {
   other.debug_utils_messenger_ = nullptr;
 }
 
-VulkanDebugMessenger::~VulkanDebugMessenger() {
+DebugMessenger::~DebugMessenger() {
   if (debug_utils_messenger_ == nullptr) {
     return;
   }
   auto destroy_debug_utils_messenger = (PFN_vkDestroyDebugUtilsMessengerEXT
   )vkGetInstanceProcAddr(instance_, "vkDestroyDebugUtilsMessengerEXT");
 
-  if (destroy_debug_utils_messenger == nullptr) {
-    debug_utils_messenger_ = nullptr;
-    EMBERS_FATAL(
+  if (destroy_debug_utils_messenger != nullptr) {
+    destroy_debug_utils_messenger(instance_, debug_utils_messenger_, nullptr);
+  } else {
+    EMBERS_ERROR(
         "Unable to properly destroy Vulkan debug messenger; "
-        "vkDestroyDebugUtilsMessengerEXT procedure was found"
+        "vkDestroyDebugUtilsMessengerEXT procedure was not found"
     );
-    return;
+    last_error_ = Error::kVulkanGetInstanceProcAddr;
   }
-
-  destroy_debug_utils_messenger(instance_, debug_utils_messenger_, nullptr);
 
   return;
 }
 
-constexpr VulkanDebugMessenger::operator bool() const {
+constexpr DebugMessenger::operator bool() const {
   return debug_utils_messenger_ != nullptr;
 }
-constexpr VulkanDebugMessenger::operator VkDebugUtilsMessengerEXT() const {
+constexpr DebugMessenger::operator VkDebugUtilsMessengerEXT() const {
   return debug_utils_messenger_;
 }
 
-constexpr VulkanDebugMessenger& VulkanDebugMessenger::operator=(
-    VulkanDebugMessenger&& rhs
-) {
+constexpr DebugMessenger& DebugMessenger::operator=(DebugMessenger&& rhs) {
   debug_utils_messenger_     = rhs.debug_utils_messenger_;
   rhs.debug_utils_messenger_ = nullptr;
   return *this;
 }
-constexpr bool VulkanDebugMessenger::operator==(const VulkanDebugMessenger& rhs
-) const {
+constexpr bool DebugMessenger::operator==(const DebugMessenger& rhs) const {
   return debug_utils_messenger_ == rhs.debug_utils_messenger_;
 }
-constexpr bool VulkanDebugMessenger::operator!=(const VulkanDebugMessenger& rhs
-) const {
+constexpr bool DebugMessenger::operator!=(const DebugMessenger& rhs) const {
   return !operator==(rhs);
 }
-EMBERS_ALWAYS_INLINE VulkanDebugMessenger::Error
-                     VulkanDebugMessenger::get_last_error() {
+EMBERS_ALWAYS_INLINE Error DebugMessenger::get_last_error() {
   return last_error_;
 }
 
-}  // namespace embers
+}  // namespace embers::vulkan
 
 #endif

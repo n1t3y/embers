@@ -34,8 +34,9 @@ add_library(
 	src/window.cpp
 	src/platform.cpp
 	src/containers/debug_allocator.cpp
-	src/vulkan.cpp
-	src/vulkan_debug_messenger.cpp
+	src/vulkan/instance.cpp
+	src/vulkan/debug_messenger.cpp
+	src/vulkan/common.cpp
 )
 
 target_include_directories(

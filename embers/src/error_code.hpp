@@ -20,13 +20,8 @@ enum class Error : ErrorType {
   kVulkanRequiredExtensionsArentPresent = 0x00000024,
   kVulkanEnumerateLayers                = 0x00000025,
   kVulkanRequiredLayersArentPresent     = 0x00000026,
+  kVulkanGetInstanceProcAddr            = 0x00000027,
 };
-
-template <typename E>
-constexpr Error to_error_code(E e) noexcept {
-  static_assert("Error code conversion is not defined");
-  return Error::kUnknown;
-}
 
 }  // namespace embers
 

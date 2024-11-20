@@ -8,15 +8,6 @@ typedef struct GLFWwindow GLFWwindow;
 namespace embers {
 
 class Window {
- public:
-  enum class Error : ErrorType {
-    kOk           = (ErrorType)embers::Error::kOk,
-    kUnknown      = (ErrorType)embers::Error::kUnknown,
-    kInitGLFW     = (ErrorType)embers::Error::kWindowInitGLFW,
-    kCreateWindow = (ErrorType)embers::Error::kWindowCreateWindow,
-  };
-
- private:
   static Error last_error_;
   static u32   glfw_inits_;
   GLFWwindow  *window_;
@@ -74,8 +65,6 @@ constexpr bool Window::operator!=(const Window &rhs) const {
   return !operator==(rhs);
 }
 
-EMBERS_ALWAYS_INLINE Window::Error Window::get_last_error() {
-  return last_error_;
-}
+EMBERS_ALWAYS_INLINE Error Window::get_last_error() { return last_error_; }
 
 }  // namespace embers
