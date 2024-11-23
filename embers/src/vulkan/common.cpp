@@ -16,4 +16,8 @@ const char* const debug_layers[1] = {  //
 
 #endif
 
+const char* required_device_extensions[1] = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+};
+
 }  // namespace embers::vulkan

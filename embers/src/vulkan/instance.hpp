@@ -55,8 +55,11 @@ class Instance {
  public:  // todo
   static Vector<const char*> get_extension_list(const config::Platform& config);
   static Vector<const char*> get_layer_list(const config::Platform& config);
-  Vector<VkPhysicalDevice>   get_device_list();
-  static VkPhysicalDevice pick_device(const Vector<VkPhysicalDevice>& devices);
+  static Vector<const char*> get_device_extension_list(
+      VkPhysicalDevice device, const config::Platform& config
+  );
+  Vector<VkPhysicalDevice> get_device_list();
+  static VkPhysicalDevice  pick_device(const Vector<VkPhysicalDevice>& devices);
 };
 
 }  // namespace embers::vulkan

@@ -137,17 +137,29 @@ int embers::test::main() {
 
   device_create_info.pEnabledFeatures = &device_features;
 
-  device_create_info.enabledExtensionCount   = 0;
-  device_create_info.ppEnabledExtensionNames = nullptr;
+  std::vector<const char*> extensions;
+  extensions.insert(
+      extensions.end(),
+      vulkan::required_device_extensions,
+      vulkan::required_device_extensions +
+          sizeof(vulkan::required_device_extensions) / sizeof(const char*)
+  );
+
+  auto a = platform.vulkan_.get_device_extension_list(device, config);
 
 #ifdef EMBERS_CONFIG_DEBUG
-  device_create_info.enabledLayerCount =
-      sizeof(vulkan::debug_layers) / sizeof(const char*);
-  device_create_info.ppEnabledLayerNames = vulkan::debug_layers;
-#else
-  device_create_info.enabledLayerCount   = 0;
-  device_create_info.ppEnabledLayerNames = nullptr;
+  // extensions.insert(
+  //     extensions.end(),
+  //     vulkan::debug_extensions,
+  //     vulkan::debug_extensions +
+  //         sizeof(vulkan::debug_extensions) / sizeof(const char*)
+  // );
 #endif
+
+  device_create_info.enabledExtensionCount   = extensions.size();
+  device_create_info.ppEnabledExtensionNames = extensions.data();
+  device_create_info.enabledLayerCount       = 1;
+  device_create_info.ppEnabledLayerNames     = vulkan::debug_layers;
 
   VkDevice virtual_device;
   VkResult resu =

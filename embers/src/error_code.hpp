@@ -10,17 +10,21 @@ namespace embers {
 using ErrorType = u32;
 
 enum class Error : ErrorType {
-  kOk                                   = 0x00000000,
-  kUnknown                              = 0x00000001,
-  kWindowInitGLFW                       = 0x00000010,
-  kWindowCreateWindow                   = 0x00000011,
-  kVulkanInitVulkan                     = 0x00000020,
-  kVulkanEnumerateExtensions            = 0x00000021,
-  kVulkanGLFWGetRequiredExtensions      = 0x00000022,
-  kVulkanRequiredExtensionsArentPresent = 0x00000024,
-  kVulkanEnumerateLayers                = 0x00000025,
-  kVulkanRequiredLayersArentPresent     = 0x00000026,
-  kVulkanGetInstanceProcAddr            = 0x00000027,
+  kOk                                         = 0x00000000,
+  kUnknown                                    = 0x00000001,
+  kWindowInitGLFW                             = 0x00000010,
+  kWindowCreateWindow                         = 0x00000011,
+  kVulkanInitVulkan                           = 0x00000020,
+  kVulkanEnumerateExtensions                  = 0x00000021,
+  kVulkanGLFWGetRequiredExtensions            = 0x00000022,
+  kVulkanRequiredExtensionsArentPresent       = 0x00000024,
+  kVulkanEnumerateLayers                      = 0x00000025,
+  kVulkanRequiredLayersArentPresent           = 0x00000026,
+  kVulkanEnumerateDeviceExtensions            = 0x00000027,
+  kVulkanRequiredDeviceExtensionsArentPresent = 0x00000028,
+  kVulkanEnumerateDeviceLayers                = 0x00000029,
+  kVulkanRequiredDeviceLayersArentPresent     = 0x0000002a,
+  kVulkanGetInstanceProcAddr                  = 0x0000002b,
 };
 
 }  // namespace embers

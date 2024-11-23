@@ -15,6 +15,24 @@ struct Version {
 static_assert(sizeof(Version) == 4, "Size of Version must be 32 bits");
 
 struct Platform {
+  template <typename T>
+  struct Array {
+    T  *array = nullptr;
+    u32 size  = 0;
+  };
+
+  struct VulkanExtensionsAndLayers {
+    struct {
+      Array<const char *> optional = {};
+      Array<const char *> required = {};
+    } extensions;
+
+    struct {
+      Array<const char *> optional = {};
+      Array<const char *> required = {};
+    } layers;
+  };
+
   const char *application_name = "Embers Application";
   struct {
     u32 width  = 1280;
@@ -23,27 +41,8 @@ struct Platform {
 
   Version version = {1, 0, 0};
 
-  struct {
-    struct {
-      const char *const *array  = nullptr;
-      u32                length = 0;
-    } optional;
-    struct {
-      const char *const *array  = nullptr;
-      u32                length = 0;
-    } required;
-  } extensions;
-
-  struct {
-    struct {
-      const char *const *array  = nullptr;
-      u32                length = 0;
-    } optional;
-    struct {
-      const char *const *array  = nullptr;
-      u32                length = 0;
-    } required;
-  } layers;
+  VulkanExtensionsAndLayers instance;
+  VulkanExtensionsAndLayers device;
 };
 
 }  // namespace embers::config
