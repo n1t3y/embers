@@ -376,8 +376,8 @@ Instance::Vector<const char*> Instance::get_device_extension_list(
     const char* const* missing =
         std::find_if_not(range.first, range.last, present_in_map);
     if (missing != range.last) {
-      EMBERS_FATAL("Required extension wasn't found: {}", *missing);
-      last_error_ = Error::kVulkanRequiredExtensionsArentPresent;
+      EMBERS_FATAL("Required device extension wasn't found: {}", *missing);
+      last_error_ = Error::kVulkanRequiredDeviceExtensionsArentPresent;
       return {};
     }
     return_value.insert(return_value.end(), range.first, range.last);
@@ -391,7 +391,10 @@ Instance::Vector<const char*> Instance::get_device_extension_list(
         [&present_in_map](const char* extension) constexpr -> bool {
           bool present = present_in_map(extension);
           if (!present) {
-            EMBERS_ERROR("Optional extension wasn't found: {}", extension);
+            EMBERS_ERROR(
+                "Optional device extension wasn't found: {}",
+                extension
+            );
           }
           return present;
         }
@@ -401,7 +404,108 @@ Instance::Vector<const char*> Instance::get_device_extension_list(
   return return_value;
 }
 
-Instance::Vector<VkPhysicalDevice> Instance::get_device_list() {
+// Instance::Vector<const char*> Instance::get_device_layer_list(
+//     VkPhysicalDevice device, const config::Platform& config
+// ) {
+//   // (n1t3)todo: i'm unsure about stl set, but it is better to search using
+//   it using SetOfViews = std::unordered_set<
+//       std::string_view,
+//       std::hash<std::string_view>,
+//       std::equal_to<std::string_view>,
+//       Allocator<std::string_view>>;
+
+//   Vector<const char*>       return_value   = {};
+//   Vector<VkLayerProperties> existing_vec   = {};
+//   SetOfViews                existing_map   = {};
+//   const auto                present_in_map =  //
+//       [&existing_map](const char* x) constexpr -> bool {
+//     return existing_map.count(x) != 0;
+//   };
+
+//   return_value.reserve(
+//       config.device.layers.required.size + config.device.layers.optional.size
+//   );
+
+//   Range required_layers[] = {
+//       {config.instance.layers.required.array,
+//        config.instance.layers.required.array +
+//            config.instance.layers.required.size}
+//   };
+//   Range optional_layers[] = {
+//       {config.instance.layers.optional.array,
+//        config.instance.layers.optional.array +
+//            config.instance.layers.optional.size},
+// #ifdef EMBERS_CONFIG_DEBUG
+//       {debug_layers, debug_layers + sizeof(debug_layers) / sizeof(const
+//       char*)}
+// #endif
+
+//   };
+
+//   // Pack existing layers into the map
+//   {
+//     u32 existing_count = 0;
+
+//     VkResult result = vkEnumerateDeviceLayerProperties(  //
+//         device,
+//         &existing_count,
+//         nullptr
+//     );
+//     if (result != VK_SUCCESS) {
+//       last_error_ = Error::kVulkanEnumerateDeviceLayers;
+//       return {};
+//     }
+//     existing_vec.resize(existing_count);
+//     result = vkEnumerateDeviceLayerProperties(
+//         device,
+//         &existing_count,
+//         existing_vec.data()
+//     );
+//     if (result != VK_SUCCESS) {
+//       last_error_ = Error::kVulkanEnumerateDeviceLayers;
+//       return {};
+//     }
+//     existing_map.reserve(existing_vec.size());
+//     std::transform(  // move the strings into set to search faster
+//         existing_vec.cbegin(),
+//         existing_vec.cend(),
+//         std::inserter(existing_map, existing_map.begin()),
+//         [](const VkLayerProperties& properties) {
+//           return std::string_view(properties.layerName);
+//         }
+//     );
+//   }
+
+//   for (const Range& range : required_layers) {
+//     const char* const* missing =
+//         std::find_if_not(range.first, range.last, present_in_map);
+//     if (missing != range.last) {
+//       EMBERS_FATAL("Required device layer wasn't found: {}", *missing);
+//       last_error_ = Error::kVulkanRequiredDeviceLayersArentPresent;
+//       return {};
+//     }
+//     return_value.insert(return_value.end(), range.first, range.last);
+//   }
+
+//   for (const Range& range : optional_layers) {
+//     std::copy_if(
+//         range.first,
+//         range.last,
+//         std::back_inserter(return_value),
+//         [&present_in_map](const char* layer) constexpr -> bool {
+//           bool present = present_in_map(layer);
+//           if (!present) {
+//             EMBERS_ERROR("Optional device layer wasn't found: {}", layer);
+//           }
+//           return present;
+//         }
+//     );
+//   }
+
+//   return return_value;
+// }
+
+Instance::Vector<VkPhysicalDevice> Instance::get_device_list() const {
   uint32_t deviceCount = 0;
   vkEnumeratePhysicalDevices(  //
       instance_,

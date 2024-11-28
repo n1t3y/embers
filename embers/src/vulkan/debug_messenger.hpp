@@ -28,7 +28,7 @@ class DebugMessenger {
 
  public:
   DebugMessenger() = delete;
-  constexpr DebugMessenger(const Instance& vulkan);
+  constexpr DebugMessenger(const Instance& instance);
   DebugMessenger(const DebugMessenger& other) = delete;
   constexpr DebugMessenger(DebugMessenger&& other);
   inline ~DebugMessenger();

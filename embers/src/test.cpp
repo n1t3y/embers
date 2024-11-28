@@ -122,44 +122,27 @@ int embers::test::main() {
   for (const u32 i : queue_families) {
     VkDeviceQueueCreateInfo device_queue_create_info = {};
     device_queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    device_queue_create_info.pNext = nullptr;
+    device_queue_create_info.flags = {};
     device_queue_create_info.queueFamilyIndex = i;
     device_queue_create_info.queueCount       = 1;
     device_queue_create_info.pQueuePriorities = &queue_priority;
     device_queue_create_infos.push_back(device_queue_create_info);
   }
 
+  VkPhysicalDeviceFeatures device_features{};
+  auto                     device_extensions =
+      platform.vulkan_.get_device_extension_list(device, config);
+
   VkDeviceCreateInfo device_create_info{};
-  device_create_info.sType             = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  device_create_info.pQueueCreateInfos = device_queue_create_infos.data();
-  device_create_info.queueCreateInfoCount = device_queue_create_infos.size();
-
-  VkPhysicalDeviceFeatures device_features{};  // todo
-
-  device_create_info.pEnabledFeatures = &device_features;
-
-  std::vector<const char*> extensions;
-  extensions.insert(
-      extensions.end(),
-      vulkan::required_device_extensions,
-      vulkan::required_device_extensions +
-          sizeof(vulkan::required_device_extensions) / sizeof(const char*)
-  );
-
-  auto a = platform.vulkan_.get_device_extension_list(device, config);
-
-#ifdef EMBERS_CONFIG_DEBUG
-  // extensions.insert(
-  //     extensions.end(),
-  //     vulkan::debug_extensions,
-  //     vulkan::debug_extensions +
-  //         sizeof(vulkan::debug_extensions) / sizeof(const char*)
-  // );
-#endif
-
-  device_create_info.enabledExtensionCount   = extensions.size();
-  device_create_info.ppEnabledExtensionNames = extensions.data();
-  device_create_info.enabledLayerCount       = 1;
-  device_create_info.ppEnabledLayerNames     = vulkan::debug_layers;
+  device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  device_create_info.pNext = nullptr;
+  device_create_info.flags = {};
+  device_create_info.queueCreateInfoCount    = device_queue_create_infos.size();
+  device_create_info.pQueueCreateInfos       = device_queue_create_infos.data();
+  device_create_info.enabledExtensionCount   = device_extensions.size();
+  device_create_info.ppEnabledExtensionNames = device_extensions.data();
+  device_create_info.pEnabledFeatures        = &device_features;
 
   VkDevice virtual_device;
   VkResult resu =
@@ -179,8 +162,9 @@ int embers::test::main() {
 
 #endif
 
-  vkDestroySurfaceKHR((VkInstance)platform.vulkan_, surface, nullptr);
   vkDestroyDevice(virtual_device, nullptr);
+
+  vkDestroySurfaceKHR((VkInstance)platform.vulkan_, surface, nullptr);
 
   return 0;
 }

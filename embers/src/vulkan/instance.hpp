@@ -58,7 +58,11 @@ class Instance {
   static Vector<const char*> get_device_extension_list(
       VkPhysicalDevice device, const config::Platform& config
   );
-  Vector<VkPhysicalDevice> get_device_list();
+  // static Vector<const char*> get_device_layer_list(
+  //     VkPhysicalDevice device, const config::Platform& config
+  // );
+
+  Vector<VkPhysicalDevice> get_device_list() const;
   static VkPhysicalDevice  pick_device(const Vector<VkPhysicalDevice>& devices);
 };
 
