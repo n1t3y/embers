@@ -14,30 +14,36 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessenger::debug_callback(
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
     void*                                       user_data
 ) {
+  static const char filename[] = "vulkan.txt";
+
   switch (message_severity) {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: {
-      EMBERS_DEBUG(
+      EMBERS_DEBUG_INTO(
+          filename,
           EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT,
           callback_data->pMessage
       );
       break;
     }
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: {
-      EMBERS_INFO(
+      EMBERS_INFO_INTO(
+          filename,
           EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT,
           callback_data->pMessage
       );
       break;
     }
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
-      EMBERS_WARN(
+      EMBERS_WARN_INTO(
+          filename,
           EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT,
           callback_data->pMessage
       );
       break;
     }
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-      EMBERS_ERROR(
+      EMBERS_ERROR_INTO(
+          filename,
           EMBERS__VULKAN_DEBUG_CALLBACK_FORMAT,
           callback_data->pMessage
       );

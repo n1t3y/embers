@@ -1,6 +1,7 @@
 #include <embers/defines.hpp>
 #include <embers/logger.hpp>
 #include <iterator>
+#include <unordered_map>
 
 #include "containers/allocator.hpp"
 #include "containers/debug_allocator.hpp"
@@ -40,8 +41,8 @@ inline String format(
 
 namespace embers::logger {
 
-constexpr const char *LOG_FILE_NAME = "log.txt";
-constexpr const i32   LOG_LEVELS    = (int)Level::kMax - (int)Level::kMin + 1;
+static const char         *LOG_FILE_NAME = "log.txt";
+constexpr static const i32 LOG_LEVELS = (int)Level::kMax - (int)Level::kMin + 1;
 
 static const struct {
   fmt::string_view console;
@@ -59,10 +60,11 @@ static const struct {
      "[Fatal] @ {:{}} > {}\n"}
 };
 
-static FILE *open_log_file();
+static FILE *open_log_file(const char *file);
 
 void internal::vlog(
     Level            level,
+    const char      *file,
     const char      *system,
     fmt::string_view format,
     fmt::format_args args
@@ -74,10 +76,11 @@ void internal::vlog(
 
 namespace embers::logger {
 
-static FILE *open_log_file() {
-  const char *filename = LOG_FILE_NAME;
-  FILE       *log_file;
-  errno_t     err = fopen_s(&log_file, filename, "w");
+static FILE *open_log_file(const char *file) {
+  const char *filename = file == nullptr ? LOG_FILE_NAME : file;
+  // const char *filename = LOG_FILE_NAME;
+  FILE   *log_file;
+  errno_t err = fopen_s(&log_file, filename, "w");
   if (err == 0) {
     return log_file;
   }
@@ -107,10 +110,16 @@ static FILE *open_log_file() {
 
 void internal::vlog(
     Level            level,
+    const char      *file,
     const char      *system,
     fmt::string_view format,
     fmt::format_args args
 ) {
+  // todo maybe not stl unordered map
+  // i'm using const char * as a key, since it is cheaper and the keys are
+  // static defined strings anyway
+  static std::unordered_map<const char *, FILE *> opened_files = {};
+
   static size_t system_width = 8;
   const String  message      = vformat(allocator, format, args);
   const auto    formats      = FORMATS[(int)level];
@@ -118,16 +127,28 @@ void internal::vlog(
   system_width = std::max(strlen(system), system_width);
 
   // Write to stdout/stderr
-  fmt::print(
-      level >= Level::kError ? stderr : stdout,
-      fmt::runtime(formats.console),
-      system,
-      system_width,
-      message
-  );
+  if (file == nullptr || level >= Level::kError) {
+    fmt::print(
+        level >= Level::kError ? stderr : stdout,
+        fmt::runtime(formats.console),
+        system,
+        system_width,
+        message
+    );
+  }
 
   // Write to file (if possible)
-  static FILE *log_file = open_log_file();
+  auto  log_file_iter = opened_files.find(file);
+  FILE *log_file      = nullptr;
+  if (log_file_iter == opened_files.end()) {
+    log_file = open_log_file(file);
+    if (log_file != nullptr) {
+      opened_files.insert({file, log_file});
+    }
+  } else {
+    log_file = log_file_iter->second;
+  }
+
   if (log_file != nullptr) {
     fmt::print(
         log_file,
@@ -137,6 +158,7 @@ void internal::vlog(
         message
     );
   }
+
   return;
 }
 

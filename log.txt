@@ -1,7 +1,0 @@
-[Debug] @ main.cpp:6 > Starting Sandbox
-[Debug] @ test.cpp:11 > Debug, 42
-[Info]  @ test.cpp:12 > Info, 42
-[Warn]  @ test.cpp:13 > Warn, 42
-[Error] @ test.cpp:14 > Error, 42
-[Fatal] @ test.cpp:15 > Fatal, 42
-[Debug] @ main.cpp:8 > Main existed with 0

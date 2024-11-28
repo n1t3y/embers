@@ -6,16 +6,22 @@
 
 #define EMBERS__LOG_LOCATION EMBERS_FILENAME ":" EMBERS_STRINGIFY(__LINE__)
 
+#define EMBERS__LOGGER_DEFAULT_FILE nullptr
+
 #if !defined(EMBERS_CONFIG_DEBUG) && false
 #define EMBERS_DEBUG(format, ...)
 #define EMBERS_INFO(format, ...)
 #define EMBERS_WARN(format, ...)
 #define EMBERS_ASSERT(expr, ...)
 #define EMBERS_ASSERT_WARN(expr, ...)
+#define EMBERS_DEBUG_INTO(file, format, ...)
+#define EMBERS_INFO_INTO(file, format, ...)
+#define EMBERS_WARN_INTO(file, format, ...)
 #else
 #define EMBERS_DEBUG(format, ...)                                              \
   embers::logger::log(                                                         \
       embers::logger::Level::kDebug,                                           \
+      EMBERS__LOGGER_DEFAULT_FILE,                                             \
       EMBERS__LOG_LOCATION,                                                    \
       FMT_STRING(format),                                                      \
       __VA_ARGS__                                                              \
@@ -24,6 +30,7 @@
 #define EMBERS_INFO(format, ...)                                               \
   embers::logger::log(                                                         \
       embers::logger::Level::kInfo,                                            \
+      EMBERS__LOGGER_DEFAULT_FILE,                                             \
       EMBERS__LOG_LOCATION,                                                    \
       FMT_STRING(format),                                                      \
       __VA_ARGS__                                                              \
@@ -32,6 +39,33 @@
 #define EMBERS_WARN(format, ...)                                               \
   embers::logger::log(                                                         \
       embers::logger::Level::kWarn,                                            \
+      EMBERS__LOGGER_DEFAULT_FILE,                                             \
+      EMBERS__LOG_LOCATION,                                                    \
+      FMT_STRING(format),                                                      \
+      __VA_ARGS__                                                              \
+  )
+#define EMBERS_DEBUG_INTO(file, format, ...)                                   \
+  embers::logger::log(                                                         \
+      embers::logger::Level::kDebug,                                           \
+      file,                                                                    \
+      EMBERS__LOG_LOCATION,                                                    \
+      FMT_STRING(format),                                                      \
+      __VA_ARGS__                                                              \
+  )
+
+#define EMBERS_INFO_INTO(file, format, ...)                                    \
+  embers::logger::log(                                                         \
+      embers::logger::Level::kInfo,                                            \
+      file,                                                                    \
+      EMBERS__LOG_LOCATION,                                                    \
+      FMT_STRING(format),                                                      \
+      __VA_ARGS__                                                              \
+  )
+
+#define EMBERS_WARN_INTO(file, format, ...)                                    \
+  embers::logger::log(                                                         \
+      embers::logger::Level::kWarn,                                            \
+      file,                                                                    \
       EMBERS__LOG_LOCATION,                                                    \
       FMT_STRING(format),                                                      \
       __VA_ARGS__                                                              \
@@ -56,6 +90,7 @@
     if (!(expr)) {                                                             \
       embers::logger::log(                                                     \
           embers::logger::Level::kError,                                       \
+          EMBERS__LOGGER_DEFAULT_FILE,                                         \
           EMBERS__LOG_LOCATION,                                                \
           __VA_ARGS__                                                          \
       );                                                                       \
@@ -67,6 +102,7 @@
 #define EMBERS_ERROR(format, ...)                                              \
   embers::logger::log(                                                         \
       embers::logger::Level::kError,                                           \
+      EMBERS__LOGGER_DEFAULT_FILE,                                             \
       EMBERS__LOG_LOCATION,                                                    \
       FMT_STRING(format),                                                      \
       __VA_ARGS__                                                              \
@@ -75,6 +111,25 @@
 #define EMBERS_FATAL(format, ...)                                              \
   embers::logger::log(                                                         \
       embers::logger::Level::kFatal,                                           \
+      EMBERS__LOGGER_DEFAULT_FILE,                                             \
+      EMBERS__LOG_LOCATION,                                                    \
+      FMT_STRING(format),                                                      \
+      __VA_ARGS__                                                              \
+  )
+
+#define EMBERS_ERROR_INTO(file, format, ...)                                   \
+  embers::logger::log(                                                         \
+      embers::logger::Level::kError,                                           \
+      file,                                                                    \
+      EMBERS__LOG_LOCATION,                                                    \
+      FMT_STRING(format),                                                      \
+      __VA_ARGS__                                                              \
+  )
+
+#define EMBERS_FATAL_INTO(file, format, ...)                                   \
+  embers::logger::log(                                                         \
+      embers::logger::Level::kFatal,                                           \
+      file,                                                                    \
       EMBERS__LOG_LOCATION,                                                    \
       FMT_STRING(format),                                                      \
       __VA_ARGS__                                                              \
@@ -95,6 +150,7 @@ enum class Level {
 namespace internal {
 void vlog(
     Level            level,
+    const char*      file,
     const char*      system,
     fmt::string_view format,
     fmt::format_args args
@@ -104,6 +160,7 @@ void vlog(
 template <typename... T>
 EMBERS_ALWAYS_INLINE void log(
     Level                    level,
+    const char*              file,
     const char*              system,
     fmt::format_string<T...> format,
     T&&... args
@@ -111,6 +168,7 @@ EMBERS_ALWAYS_INLINE void log(
 
 EMBERS_ALWAYS_INLINE void vlog(
     Level            level,
+    const char*      file,
     const char*      system,
     fmt::string_view format,
     fmt::format_args args
@@ -124,52 +182,98 @@ EMBERS_ALWAYS_INLINE void vlog(
       "embers::logger::Level::kError is out of bounds, "
       "the call will get into a recursion, that's bad"
   );
-  return internal::vlog(level, system, format, args);
+  return internal::vlog(level, file, system, format, args);
 };
 
 template <typename... T>
 EMBERS_ALWAYS_INLINE void log(
     Level                    level,
+    const char*              file,
     const char*              system,
     fmt::format_string<T...> format,
     T&&... args
 ) {
-  return vlog(level, system, format, fmt::make_format_args(args...));
+  return vlog(level, file, system, format, fmt::make_format_args(args...));
 }
 
 template <typename... T>
 EMBERS_ALWAYS_INLINE void debug(
-    const char* system, fmt::format_string<T...> format, T&&... args
+    const char*              file,
+    const char*              system,
+    fmt::format_string<T...> format,
+    T&&... args
 ) {
-  return vlog(Level::kDebug, system, format, fmt::make_format_args(args...));
+  return vlog(
+      Level::kDebug,
+      file,
+      system,
+      format,
+      fmt::make_format_args(args...)
+  );
 }
 
 template <typename... T>
 EMBERS_ALWAYS_INLINE void info(
-    const char* system, fmt::format_string<T...> format, T&&... args
+    const char*              file,
+    const char*              system,
+    fmt::format_string<T...> format,
+    T&&... args
 ) {
-  return vlog(Level::kInfo, system, format, fmt::make_format_args(args...));
+  return vlog(
+      Level::kInfo,
+      file,
+      system,
+      format,
+      fmt::make_format_args(args...)
+  );
 }
 
 template <typename... T>
 EMBERS_ALWAYS_INLINE void warn(
-    const char* system, fmt::format_string<T...> format, T&&... args
+    const char*              file,
+    const char*              system,
+    fmt::format_string<T...> format,
+    T&&... args
 ) {
-  return vlog(Level::kWarn, system, format, fmt::make_format_args(args...));
+  return vlog(
+      Level::kWarn,
+      file,
+      system,
+      format,
+      fmt::make_format_args(args...)
+  );
 }
 
 template <typename... T>
 EMBERS_ALWAYS_INLINE void error(
-    const char* system, fmt::format_string<T...> format, T&&... args
+    const char*              file,
+    const char*              system,
+    fmt::format_string<T...> format,
+    T&&... args
 ) {
-  return vlog(Level::kError, system, format, fmt::make_format_args(args...));
+  return vlog(
+      Level::kError,
+      file,
+      system,
+      format,
+      fmt::make_format_args(args...)
+  );
 }
 
 template <typename... T>
 EMBERS_ALWAYS_INLINE void fatal(
-    const char* system, fmt::format_string<T...> format, T&&... args
+    const char*              file,
+    const char*              system,
+    fmt::format_string<T...> format,
+    T&&... args
 ) {
-  return vlog(Level::kFatal, system, format, fmt::make_format_args(args...));
+  return vlog(
+      Level::kFatal,
+      file,
+      system,
+      format,
+      fmt::make_format_args(args...)
+  );
 }
 
 }  // namespace embers::logger
