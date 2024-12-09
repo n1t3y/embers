@@ -38,6 +38,7 @@ add_library(
 	src/vulkan/debug_messenger.cpp
 	src/vulkan/common.cpp
 	src/vulkan/device.cpp
+	src/vulkan/surface.cpp
 )
 
 target_include_directories(

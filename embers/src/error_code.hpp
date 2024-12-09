@@ -1,6 +1,5 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
 #include <fmt/base.h>
 
 #include <embers/defines.hpp>
@@ -25,6 +24,7 @@ enum class Error : ErrorType {
   kVulkanEnumerateDeviceLayers                = 0x00000029,
   kVulkanRequiredDeviceLayersArentPresent     = 0x0000002a,
   kVulkanGetInstanceProcAddr                  = 0x0000002b,
+  kVulkanCreateSurface                        = 0x00000030,
 };
 
 }  // namespace embers

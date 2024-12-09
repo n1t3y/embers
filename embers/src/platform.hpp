@@ -5,7 +5,7 @@
 
 #include "error_code.hpp"
 #include "vulkan/debug_messenger.hpp"
-#include "vulkan/vulkan.hpp"
+#include "vulkan/surface.hpp"
 #include "window.hpp"
 
 namespace embers {
@@ -15,6 +15,7 @@ class Platform {
   static Error     last_error_;
   Window           window_;
   vulkan::Instance vulkan_;
+  vulkan::Surface  surface_;
 #ifdef EMBERS_CONFIG_DEBUG
   vulkan::DebugMessenger debug_messenger_;
 #endif
@@ -46,7 +47,7 @@ inline Platform::Platform(const config::Platform &config)
           config.resolution.height,
           config.application_name
       ),
-      vulkan_(config)
+      surface_(vulkan_, window_),
 #ifdef EMBERS_CONFIG_DEBUG
       ,
       debug_messenger_(vulkan_)
@@ -62,6 +63,10 @@ inline Platform::Platform(const config::Platform &config)
     last_error_ = vulkan::Instance::get_last_error();
     goto platform_create_error;
   }
+  if (!(bool)surface_) {
+    last_error_ = vulkan::Surface::get_last_error();
+    goto platform_create_error;
+  }
 
   EMBERS_INFO("Platform initialized");
   return;
@@ -72,7 +77,7 @@ platform_create_error:
 
 constexpr Platform::Platform(Platform &&platform)
     : window_(std::move(platform.window_)),
-      vulkan_(std::move(platform.vulkan_))
+      surface_(std::move(platform.surface_)),
 #ifdef EMBERS_CONFIG_DEBUG
       ,
       debug_messenger_(std::move(platform.debug_messenger_))
