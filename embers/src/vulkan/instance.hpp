@@ -3,9 +3,9 @@
 #include <embers/config.hpp>
 #include <vector>
 
-#include "../containers/allocator.hpp"
-#include "../containers/debug_allocator.hpp"
 #include "../error_code.hpp"
+#include "common.hpp"
+
 
 struct VkInstance_T;
 struct VkPhysicalDevice_T;
@@ -16,21 +16,6 @@ typedef VkPhysicalDevice_T* VkPhysicalDevice;
 namespace embers::vulkan {
 
 class Instance {
-#ifdef EMBERS_CONFIG_DEBUG
-  template <typename T>
-  using Allocator = containers::with<
-      containers::DefaultAllocator,
-      containers::DebugAllocatorTags::kVulkan>::DebugAllocator<T>;
-
-#else
-  template <typename T>
-  using Allocator = embers::containers::DefaultAllocator<T>;
-#endif
-
-  template <typename T>
-  using Vector = std::vector<T, Allocator<T>>;
-
- private:
   static Error last_error_;
   VkInstance   instance_;
 

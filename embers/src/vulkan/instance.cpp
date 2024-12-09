@@ -25,13 +25,12 @@ constexpr u32 version_to_vk(config::Version version);
 namespace embers::vulkan {
 
 Instance::Instance(const config::Platform& config) {
-  VkResult                            result               = VK_SUCCESS;
-  VkApplicationInfo                   app_info             = {};
-  VkInstanceCreateInfo                instance_create_info = {};
-  const Instance::Vector<const char*> extensions =
-      get_extension_list(config);  // todo checks
-  const Instance::Vector<const char*> layers =
-      get_layer_list(config);  // todo checks
+  VkResult                  result               = VK_SUCCESS;
+  VkApplicationInfo         app_info             = {};
+  VkInstanceCreateInfo      instance_create_info = {};
+  const Vector<const char*> extensions =
+      get_extension_list(config);                             // todo checks
+  const Vector<const char*> layers = get_layer_list(config);  // todo checks
 
   EMBERS_DEBUG("Enabled extensions: ");
   for (const auto& i : extensions) {
@@ -88,8 +87,7 @@ void Instance::destroy() {
   return;
 }
 
-Instance::Vector<const char*> Instance::get_extension_list(
-    const config::Platform& config
+Vector<const char*> Instance::get_extension_list(const config::Platform& config
 ) {
   // (n1t3)todo: i'm unsure about stl set, but it is better to search using it
   using SetOfViews = std::unordered_set<
@@ -201,9 +199,7 @@ Instance::Vector<const char*> Instance::get_extension_list(
   return return_value;
 }
 
-Instance::Vector<const char*> Instance::get_layer_list(
-    const config::Platform& config
-) {
+Vector<const char*> Instance::get_layer_list(const config::Platform& config) {
   // (n1t3)todo: i'm unsure about stl set, but it is better to search using it
   using SetOfViews = std::unordered_set<
       std::string_view,
@@ -299,7 +295,7 @@ Instance::Vector<const char*> Instance::get_layer_list(
   return return_value;
 }
 
-Instance::Vector<const char*> Instance::get_device_extension_list(
+Vector<const char*> Instance::get_device_extension_list(
     VkPhysicalDevice device, const config::Platform& config
 ) {
   // (n1t3)todo: i'm unsure about stl set, but it is better to search using it
@@ -505,7 +501,7 @@ Instance::Vector<const char*> Instance::get_device_extension_list(
 //   return return_value;
 // }
 
-Instance::Vector<VkPhysicalDevice> Instance::get_device_list() const {
+Vector<VkPhysicalDevice> Instance::get_device_list() const {
   uint32_t deviceCount = 0;
   vkEnumeratePhysicalDevices(  //
       instance_,
@@ -522,12 +518,11 @@ Instance::Vector<VkPhysicalDevice> Instance::get_device_list() const {
   return devices;
 }
 
-VkPhysicalDevice Instance::pick_device(
-    const Instance::Vector<VkPhysicalDevice>& devices
+VkPhysicalDevice Instance::pick_device(const Vector<VkPhysicalDevice>& devices
 ) {
-  Instance::Vector<u32>                        rating(devices.size(), 1);
-  Instance::Vector<VkPhysicalDeviceProperties> properties(devices.size());
-  Instance::Vector<VkPhysicalDeviceFeatures>   features(devices.size());
+  Vector<u32>                        rating(devices.size(), 1);
+  Vector<VkPhysicalDeviceProperties> properties(devices.size());
+  Vector<VkPhysicalDeviceFeatures>   features(devices.size());
 
   for (std::size_t i = 0; i < devices.size(); ++i) {
     vkGetPhysicalDeviceProperties(devices[i], &properties[i]);

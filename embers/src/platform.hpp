@@ -5,6 +5,7 @@
 
 #include "error_code.hpp"
 #include "vulkan/debug_messenger.hpp"
+#include "vulkan/device.hpp"
 #include "vulkan/surface.hpp"
 #include "window.hpp"
 
@@ -16,6 +17,7 @@ class Platform {
   Window           window_;
   vulkan::Instance vulkan_;
   vulkan::Surface  surface_;
+  vulkan::Device   device_;
 #ifdef EMBERS_CONFIG_DEBUG
   vulkan::DebugMessenger debug_messenger_;
 #endif
@@ -47,7 +49,9 @@ inline Platform::Platform(const config::Platform &config)
           config.resolution.height,
           config.application_name
       ),
+      vulkan_(config),
       surface_(vulkan_, window_),
+      device_(vulkan_, surface_, config)
 #ifdef EMBERS_CONFIG_DEBUG
       ,
       debug_messenger_(vulkan_)
@@ -77,7 +81,9 @@ platform_create_error:
 
 constexpr Platform::Platform(Platform &&platform)
     : window_(std::move(platform.window_)),
+      vulkan_(std::move(platform.vulkan_)),
       surface_(std::move(platform.surface_)),
+      device_(std::move(platform.device_))
 #ifdef EMBERS_CONFIG_DEBUG
       ,
       debug_messenger_(std::move(platform.debug_messenger_))

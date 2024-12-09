@@ -1,21 +1,32 @@
 #pragma once
 
 #include "instance.hpp"
+#include "surface.hpp"
 
-struct VkDevice_T;
-typedef VkDevice_T* VkDevice;
+typedef struct VkDevice_T* VkDevice;
+typedef struct VkQueue_T*  VkQueue;
 
 namespace embers::vulkan {
 
 class Device {
   static Error last_error_;
   VkDevice     device_;
+  struct {
+    VkQueue graphics;
+    VkQueue transfer;
+    VkQueue present;
+    VkQueue compute;
+  } queues_;
 
   void destroy();
 
  public:
   Device() = delete;
-  Device(const Instance& instance, const config::Platform& config);
+  Device(
+      const Instance&         instance,
+      const Surface&          surface,
+      const config::Platform& config
+  );
   Device(const Device& other) = delete;
   constexpr Device(Device&& other);
   inline ~Device();
@@ -33,7 +44,8 @@ class Device {
 
 namespace embers::vulkan {
 
-constexpr Device::Device(Device&& other) : device_(other.device_) {
+constexpr Device::Device(Device&& other)
+    : device_(other.device_), queues_(other.queues_) {
   other.device_ = nullptr;
   return;
 }
