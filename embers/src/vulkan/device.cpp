@@ -70,7 +70,6 @@ Device::Device(
       rating = 0x10000000;
     }
 
-    u32 BITS_IN_MASK = 0x200;
     for (u32 i = 0; i != device_families_length; ++i) {
       bool has_avaliable_queues = device_families[i].queueCount >=
                                   queue_families_additional_info[i].used;
@@ -103,6 +102,7 @@ Device::Device(
 
   // todo error checks (-1)
 
+  // todo replace with array
   std::unordered_map<
       u32,
       u32,
